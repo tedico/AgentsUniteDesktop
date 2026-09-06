@@ -1,0 +1,175 @@
+// AgentsUnite Desktop accessibility bridge. Run by src/ax/jxa.js as
+//   osascript -l JavaScript src/ax/ax.jxa '<command json>'
+// with the text payload for setValue/paste in the AX_TEXT environment
+// variable. Prints exactly one JSON object and never throws: every failure is
+// { ok:false, code, error } with code in
+//   noProcess | noWindow | accessibility | automation | script.
+// Paths are arrays of 0-based indices: [windowIndex, child, grandchild, ...].
+ObjC.import('Foundation');
+ObjC.import('AppKit');
+
+var SE = Application('System Events');
+
+function run(argv) {
+  var out;
+  try { out = dispatch(JSON.parse(argv[0])); }
+  catch (e) { out = { ok: false, code: errCode(e), error: String(e) }; }
+  return JSON.stringify(out);
+}
+
+function dispatch(cmd) {
+  switch (cmd.op) {
+    case 'running': return { ok: true, running: procsFor(cmd.bundleId).length > 0 };
+    case 'manualA11y': return manualA11y(procFor(cmd.bundleId));
+    case 'windows': return windows(procFor(cmd.bundleId));
+    case 'snapshot': return snapshot(procFor(cmd.bundleId), cmd);
+    case 'getValue': return { ok: true, value: str(elementAt(procFor(cmd.bundleId), cmd.path).value()) };
+    case 'setValue': return setValue(procFor(cmd.bundleId), cmd.path, envText());
+    case 'press': return press(procFor(cmd.bundleId), cmd.path);
+    case 'paste': return paste(procFor(cmd.bundleId), cmd.bundleId, cmd.path, envText());
+    default: return { ok: false, code: 'script', error: 'unknown op ' + cmd.op };
+  }
+}
+
+function procsFor(bundleId) { return SE.applicationProcesses.whose({ bundleIdentifier: bundleId })(); }
+function procFor(bundleId) {
+  var procs = procsFor(bundleId);
+  if (procs.length === 0) throw tagged('noProcess', 'app not running: ' + bundleId);
+  return procs[0];
+}
+function tagged(code, msg) { var e = new Error(msg); e.axCode = code; return e; }
+function errCode(e) {
+  if (e && e.axCode) return e.axCode;
+  var s = String(e);
+  if (/-1743|Not authorized/i.test(s)) return 'automation';
+  if (/-25211|assistive access|not allowed to send keystrokes/i.test(s)) return 'accessibility';
+  return 'script';
+}
+function envText() {
+  var v = $.NSProcessInfo.processInfo.environment.objectForKey('AX_TEXT');
+  return v.isNil() ? '' : ObjC.unwrap(v);
+}
+function str(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return null;
+}
+
+// Chromium only publishes its page to accessibility clients once an assistive
+// app asks for it. Setting this attribute on the process is that ask.
+function manualA11y(proc) {
+  try { proc.attributes.byName('AXManualAccessibility').value = true; return { ok: true, applied: true }; }
+  catch (e) { return { ok: true, applied: false, error: String(e) }; }
+}
+
+function windows(proc) {
+  var wins = proc.windows();
+  var minimized = 0;
+  for (var i = 0; i < wins.length; i++) {
+    try { if (wins[i].attributes.byName('AXMinimized').value() === true) minimized++; } catch (e) {}
+  }
+  return { ok: true, count: wins.length, minimized: minimized };
+}
+
+function elementAt(proc, path) {
+  var wins = proc.windows();
+  if (wins.length === 0) throw tagged('noWindow', 'no accessible window');
+  var el = wins[path[0]];
+  for (var i = 1; i < path.length; i++) el = el.uiElements[path[i]];
+  return el;
+}
+
+function snapshot(proc, cmd) {
+  var budget = { left: cmd.maxNodes };
+  var path = cmd.path || [];
+  if (path.length === 0) {
+    var wins = proc.windows();
+    if (wins.length === 0) throw tagged('noWindow', 'no accessible window');
+    var roots = [];
+    for (var w = 0; w < wins.length && budget.left > 0; w++) roots.push(describe(wins[w], [w], 0, cmd.maxDepth, budget));
+    return { ok: true, truncated: budget.left <= 0, tree: { role: 'AXApplication', subrole: null, name: null, title: null, description: null, help: null, value: null, enabled: true, path: [], children: roots } };
+  }
+  var el = elementAt(proc, path);
+  return { ok: true, truncated: budget.left <= 0, tree: describe(el, path, 0, cmd.maxDepth, budget) };
+}
+
+// The root of a subtree reads its own attributes one by one (a handful of
+// Apple events). Children are read in bulk: `el.uiElements.role()` is ONE
+// Apple event for every child, which is what keeps a Chromium tree walkable.
+function describe(el, path, depth, maxDepth, budget) {
+  var n = {
+    role: attr(el, 'role'), subrole: attr(el, 'subrole'), name: attr(el, 'name'), title: attr(el, 'title'),
+    description: attr(el, 'description'), help: attr(el, 'help'), value: attr(el, 'value'),
+    enabled: attr(el, 'enabled') === 'true', path: path, children: [],
+  };
+  budget.left--;
+  if (depth < maxDepth && budget.left > 0) n.children = children(el, path, depth, maxDepth, budget);
+  return n;
+}
+function attr(el, prop) { try { return str(el[prop]()); } catch (e) { return null; } }
+
+function children(el, path, depth, maxDepth, budget) {
+  var roles;
+  try { roles = el.uiElements.role(); } catch (e) { return []; }
+  var count = roles.length;
+  if (count === 0) return [];
+  var cols = {
+    subrole: bulk(el, 'subrole', count), name: bulk(el, 'name', count), title: bulk(el, 'title', count),
+    description: bulk(el, 'description', count), help: bulk(el, 'help', count), value: bulk(el, 'value', count),
+    enabled: bulk(el, 'enabled', count),
+  };
+  var kids = el.uiElements();
+  var out = [];
+  for (var i = 0; i < count && budget.left > 0; i++) {
+    var childPath = path.concat([i]);
+    var n = {
+      role: str(roles[i]), subrole: str(cols.subrole[i]), name: str(cols.name[i]), title: str(cols.title[i]),
+      description: str(cols.description[i]), help: str(cols.help[i]), value: str(cols.value[i]),
+      enabled: cols.enabled[i] === true, path: childPath, children: [],
+    };
+    budget.left--;
+    if (depth + 1 < maxDepth && budget.left > 0) n.children = children(kids[i], childPath, depth + 1, maxDepth, budget);
+    out.push(n);
+  }
+  return out;
+}
+function bulk(el, prop, count) {
+  try { var v = el.uiElements[prop](); return v.length === count ? v : new Array(count).fill(null); }
+  catch (e) { return new Array(count).fill(null); }
+}
+
+function setValue(proc, path, text) {
+  elementAt(proc, path).value = text;
+  return { ok: true };
+}
+
+function press(proc, path) {
+  var el = elementAt(proc, path);
+  try { el.click(); return { ok: true }; }
+  catch (e) { el.actions.byName('AXPress').perform(); return { ok: true }; }
+}
+
+// Clipboard fallback for an app that ignores a direct value set: save the
+// clipboard, put the text on it, focus the composer, ⌘V, restore. Steals
+// focus for a moment; accepted for version 1.
+function paste(proc, bundleId, path, text) {
+  var pb = $.NSPasteboard.generalPasteboard;
+  var savedObj = pb.stringForType($.NSPasteboardTypeString);
+  var saved = savedObj.isNil() ? null : ObjC.unwrap(savedObj);
+  pb.clearContents;
+  pb.setStringForType($(text), $.NSPasteboardTypeString);
+  try {
+    var el = elementAt(proc, path);
+    Application(bundleId).activate();
+    $.NSThread.sleepForTimeInterval(0.25);
+    try { el.focused = true; } catch (e) {}
+    $.NSThread.sleepForTimeInterval(0.1);
+    SE.keystroke('v', { using: 'command down' });
+    $.NSThread.sleepForTimeInterval(0.25);
+  } finally {
+    pb.clearContents;
+    if (saved !== null) pb.setStringForType($(saved), $.NSPasteboardTypeString);
+  }
+  return { ok: true };
+}

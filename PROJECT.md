@@ -13,7 +13,7 @@ Building an Electron macOS desktop app that relays messages between the Claude d
 * **Active Plan:** [docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md](docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md) — 15 tasks; five spec deviations approved by Ted 2026-09-06
 * **Assigned Controller:** Cursor (Task 1 onward, per the spec's coding ranking)
 * **Planned Execution:** Cursor (bulk implementation) / Gemini / Claude
-* **Current Status:** Task 2 complete (AX tree query helpers). Next: Task 3 (JXA bridge, helper, probe; human-gated fixture capture)
+* **Current Status:** Task 3 Steps 1–8 complete (JXA bridge, helper, probe script). Paused for Ted: grant Accessibility + Automation, open throwaway chats, then Steps 9–12 (live probe + fixtures).
 
 ---
 

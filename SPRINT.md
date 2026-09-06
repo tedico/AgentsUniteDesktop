@@ -10,7 +10,7 @@
 Phase 1 — Probe and fixtures
 
 ## Next
-Task 3 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (JXA bridge, accessibility helper, probe; fixture capture)
+Task 3 Steps 9–12 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (live probe + fixtures) — waiting on Ted: Accessibility + Automation grants, throwaway "hello" chats in Claude.app and Gemini.app
 
 ## Human
 - Grant Accessibility and Automation (System Events) to the terminal app that will run `node scripts/probe.mjs` (System Settings → Privacy & Security → Accessibility / Automation). Relaunch it if the grant does not take effect.
