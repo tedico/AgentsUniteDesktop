@@ -87,7 +87,10 @@ function snapshot(proc, cmd) {
     var wins = proc.windows();
     if (wins.length === 0) throw tagged('noWindow', 'no accessible window');
     var roots = [];
-    for (var w = 0; w < wins.length && budget.left > 0; w++) roots.push(describe(wins[w], [w], 0, cmd.maxDepth, budget));
+    for (var w = 0; w < wins.length && budget.left > 0; w++) {
+      try { roots.push(describe(wins[w], [w], 0, cmd.maxDepth, budget)); }
+      catch (e) { /* live trees mutate; skip a window rather than fail the snapshot */ }
+    }
     return { ok: true, truncated: budget.left <= 0, tree: { role: 'AXApplication', subrole: null, name: null, title: null, description: null, help: null, value: null, enabled: true, path: [], children: roots } };
   }
   var el = elementAt(proc, path);
@@ -119,7 +122,8 @@ function children(el, path, depth, maxDepth, budget) {
     description: bulk(el, 'description', count), help: bulk(el, 'help', count), value: bulk(el, 'value', count),
     enabled: bulk(el, 'enabled', count),
   };
-  var kids = el.uiElements();
+  var kids;
+  try { kids = el.uiElements(); } catch (e) { return []; }
   var out = [];
   for (var i = 0; i < count && budget.left > 0; i++) {
     var childPath = path.concat([i]);
@@ -129,7 +133,10 @@ function children(el, path, depth, maxDepth, budget) {
       enabled: cols.enabled[i] === true, path: childPath, children: [],
     };
     budget.left--;
-    if (depth + 1 < maxDepth && budget.left > 0) n.children = children(kids[i], childPath, depth + 1, maxDepth, budget);
+    if (depth + 1 < maxDepth && budget.left > 0) {
+      try { n.children = children(kids[i], childPath, depth + 1, maxDepth, budget); }
+      catch (e) { n.children = []; }
+    }
     out.push(n);
   }
   return out;

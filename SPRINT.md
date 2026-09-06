@@ -10,13 +10,13 @@
 Phase 1 — Probe and fixtures
 
 ## Next
-Task 3 Steps 9–12 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (live probe + fixtures) — waiting on Ted: Accessibility + Automation grants, throwaway "hello" chats in Claude.app and Gemini.app
+Task 3 remainder: Claude streaming/done fixtures (Ted clicks Send), then Task 4 selectors — or re-plan Claude submit if AXPress stays dead.
 
 ## Human
-- Grant Accessibility and Automation (System Events) to the terminal app that will run `node scripts/probe.mjs` (System Settings → Privacy & Security → Accessibility / Automation). Relaunch it if the grant does not take effect.
-- Open a throwaway "hello" chat in Claude.app and in Gemini.app for fixture capture.
+- In Claude.app, click Send (composer still has the probe text) or type/send `Reply with one sentence and then a three-line JavaScript code block.` so we can capture `claude-streaming` and `claude-done`.
+- Optional: start a long Gemini generation and ping immediately if we should retry a Stop-button snapshot.
 - Later: grant Accessibility and Automation to the packaged AgentsUnite Desktop app when it asks.
 - Run the live smoke twice (Task 15).
 
 ## Blockers
-none
+Claude Send does not respond to AXPress, click, or Return from osascript. Gemini Stop never appeared in 15–27s snapshots.

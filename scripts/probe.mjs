@@ -8,9 +8,11 @@
 //   node scripts/probe.mjs <claude|gemini> write <path>      setValue "probe hello" then read back
 //   node scripts/probe.mjs <claude|gemini> paste <path>      clipboard fallback, then read back
 //   node scripts/probe.mjs <claude|gemini> press <path>      press a button (e.g. Send)
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeAxHelper } from '../src/ax/helper.js';
+import { runJxa } from '../src/ax/jxa.js';
 import { findAll, collectText, walk } from '../src/ax/query.js';
 
 const APPS = {
@@ -24,16 +26,38 @@ if (mode === 'snapshot' && !['idle', 'streaming', 'done'].includes(arg)) usage()
 if (mode !== 'snapshot' && !/^\d+(,\d+)*$/.test(arg ?? '')) usage();
 
 const { appName, bundleId, manualAccessibility } = APPS[app];
-const helper = makeAxHelper();
+// Chromium trees are deep (composer ~depth 27) and the sidebar can be huge;
+// 20s / maxDepth 60 timed out or threw "Can't get object" on Claude.
+const helper = makeAxHelper({
+  run: ({ command, text }) => runJxa({
+    command,
+    text,
+    timeoutMs: command.op === 'snapshot' ? 180000 : 20000,
+  }),
+});
 const parsePath = (s) => s.split(',').map(Number);
 
 if (!(await helper.isRunning(bundleId))) { console.error(`${appName} is not running`); process.exit(1); }
-if (manualAccessibility) console.log('manualA11y:', await helper.enableManualAccessibility(bundleId));
+try { execFileSync('osascript', ['-l', 'JavaScript', '-e', `Application('${bundleId}').activate()`]); } catch { /* probe continues; windows() reports the result */ }
+await new Promise((r) => setTimeout(r, 500));
+if (manualAccessibility) {
+  console.log('manualA11y:', await helper.enableManualAccessibility(bundleId));
+  await new Promise((r) => setTimeout(r, 1000));
+}
 console.log('windows:', await helper.windows(bundleId));
 
 if (mode === 'snapshot') {
   const t0 = Date.now();
-  const snap = await helper.snapshot(bundleId);
+  const composerHit = (tree) => [...walk(tree)].some((n) => n.role === 'AXTextArea' && /Ask Gemini|Write your prompt|prompt/i.test(`${n.description ?? ''} ${n.help ?? ''}`));
+  let snap;
+  // Gemini's expanded sidebar (100+ outline rows) eats a full-window walk;
+  // the conversation lives in the split pane at [0,0,0,2].
+  if (app === 'gemini') {
+    snap = await helper.snapshot(bundleId, { path: [0, 0, 0, 2], maxDepth: 25, maxNodes: 3000 });
+    if (!snap.ok || !composerHit(snap.tree)) snap = await helper.snapshot(bundleId, { maxDepth: 40, maxNodes: 8000 });
+  } else {
+    snap = await helper.snapshot(bundleId, { maxDepth: 40, maxNodes: 8000 });
+  }
   const ms = Date.now() - t0;
   if (!snap.ok) { console.error('snapshot failed:', snap); process.exit(1); }
   const nodes = [...walk(snap.tree)].length;
