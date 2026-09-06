@@ -1,0 +1,13 @@
+{
+  "repo": "../AgentsUnite",
+  "commit": "5bf0d0f00f0e6cf05ece89886d7719661cf65525",
+  "modules": [
+    "lib/engine.js",
+    "lib/transcript.js",
+    "lib/mentions.js",
+    "lib/deltas.js",
+    "lib/config.js",
+    "lib/paths.js",
+    "lib/cli.js"
+  ]
+}

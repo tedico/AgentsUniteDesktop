@@ -13,7 +13,7 @@ Building an Electron macOS desktop app that relays messages between the Claude d
 * **Active Plan:** [docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md](docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md) — 15 tasks; five spec deviations approved by Ted 2026-09-06
 * **Assigned Controller:** Cursor (Task 1 onward, per the spec's coding ranking)
 * **Planned Execution:** Cursor (bulk implementation) / Gemini / Claude
-* **Current Status:** Plan written — implementation starts at Task 1 (repo skeleton, vendored engine)
+* **Current Status:** Task 1 complete (repo skeleton + vendored engine). Next: Task 2 (AX tree query module)
 
 ---
 
@@ -22,7 +22,7 @@ Building an Electron macOS desktop app that relays messages between the Claude d
 ### Active Sprint: Desktop Relay v0.1
 - [x] **Design Approval** (Completed 2026-09-06) — Approach A (macOS accessibility layer driving both apps).
 - [x] **Implementation Plan** (Completed 2026-09-06 — Claude Fable) — [15 sequential tasks](docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md), TDD, one commit each.
-- [ ] **Scaffolding & Engine Import** — Import engine from `/Users/teds/Projekts/AgentsUnite`.
+- [x] **Scaffolding & Engine Import** (Completed 2026-09-06 — Cursor) — Vendored engine from `/Users/teds/Projekts/AgentsUnite` at pin `5bf0d0f`, drift-tested.
 - [ ] **Accessibility Probe Verification** — Read/write composers in Claude and Gemini windows.
 - [ ] **Relay Loop & Turn-Taking** — Enforce @mention rules and turn caps.
 - [ ] **Electron Single-Window UI** — Unified dual-stream display and composer.
