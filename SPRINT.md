@@ -10,7 +10,7 @@
 Phase 1 — Probe and fixtures
 
 ## Next
-Task 2 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (AX tree query module)
+Task 3 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (JXA bridge, accessibility helper, probe; fixture capture)
 
 ## Human
 - Grant Accessibility and Automation (System Events) to the terminal app that will run `node scripts/probe.mjs` (System Settings → Privacy & Security → Accessibility / Automation). Relaunch it if the grant does not take effect.
