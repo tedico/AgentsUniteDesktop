@@ -73,19 +73,32 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       const before = items(tree);
 
       // 2. Write: direct value set, verified; clipboard paste as the fallback.
+      // Chromium mutates the AX tree when the composer fills, so the pre-write
+      // path is stale for getValue. Re-snapshot and re-find before holds().
       progress('pasting');
-      const composer = findNode(tree, selectors.composer);
-      let landed = (await helper.setValue(bundleId, composer.path, prompt)).ok && (await holds(composer.path));
+      let composer = findNode(tree, selectors.composer);
+      const confirmLanded = async () => {
+        const after = await snapshot();
+        if (!after.ok) return after;
+        tree = after.tree;
+        composer = findNode(tree, selectors.composer);
+        return { ok: true, landed: composer ? await holds(composer.path) : false };
+      };
+      let landed = (await helper.setValue(bundleId, composer.path, prompt)).ok;
+      let confirmed = landed ? await confirmLanded() : { ok: true, landed: false };
+      if (!confirmed.ok) return fail(confirmed.error);
+      landed = confirmed.landed;
       if (!landed) {
+        if (!composer) return fail(ERRORS.selectorsNotFound(appName, 'message box (text did not land)', selectors.file));
         const p = await helper.paste(bundleId, composer.path, prompt);
-        landed = p.ok && (await holds(composer.path));
+        confirmed = await confirmLanded();
+        if (!confirmed.ok) return fail(confirmed.error);
+        landed = p.ok && confirmed.landed;
       }
       if (!landed) return fail(ERRORS.selectorsNotFound(appName, 'message box (text did not land)', selectors.file));
 
-      // Re-find the send button: the tree shifts when the composer fills.
-      s = await snapshot();
-      if (!s.ok) return fail(s.error);
-      const send = findNode(s.tree, selectors.sendButton);
+      // Send is found on the post-write tree (same snapshot as holds()).
+      const send = findNode(tree, selectors.sendButton);
       if (!send) return fail(ERRORS.selectorsNotFound(appName, 'send button', selectors.file));
       const pressed = await helper.press(bundleId, send.path);
       if (!pressed.ok) return fail(describeAxError(pressed, appName));

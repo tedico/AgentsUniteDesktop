@@ -23,7 +23,7 @@ test('happy path: set value, press send, poll until stable, return the new reply
   const evts = [];
   const res = await a.invoke({ prompt: PROMPT, sessionRef: null, onProgress: (e) => evts.push(e) });
   assert.deepEqual(res, { ok: true, replyText: 'Hello back!', sessionRef: 'desktop:test' });
-  assert.deepEqual(helper.ops(), ['isRunning', 'snapshot', 'setValue', 'getValue', 'snapshot', 'press', 'snapshot', 'snapshot', 'snapshot']);
+  assert.deepEqual(helper.ops(), ['isRunning', 'snapshot', 'setValue', 'snapshot', 'getValue', 'press', 'snapshot', 'snapshot', 'snapshot']);
   assert.deepEqual(helper.calls[2].slice(1), [[0, 1], PROMPT]);           // composer path from the tree
   assert.deepEqual(helper.calls[5][1], [0, 2]);                           // send button path
   assert.deepEqual(evts.map((e) => e.phase), ['pasting', 'sent', 'streaming', 'streaming', 'streaming', 'done']);
@@ -64,6 +64,20 @@ test('no send button / no conversation → selectors not found, naming the selec
   noConv.children[0].children = noConv.children[0].children.filter((n) => n.description !== 'conversation');
   res = await adapter(makeFakeHelper({ trees: [noConv] })).a.invoke({ prompt: PROMPT });
   assert.equal(res.error, ERRORS.selectorsNotFound('TestApp', 'conversation area', SEL.file));
+});
+
+test('composer path is re-found after write so a mutated AX tree still verifies and sends', async () => {
+  const shifted = makeTree({ messages: ['old q', 'old a'], composerValue: PROMPT, shiftComposer: true });
+  const helper = makeFakeHelper({
+    trees: [idle, shifted, streaming, done],
+    staleComposerPathAfterWrite: true,
+  });
+  const res = await adapter(helper).a.invoke({ prompt: PROMPT });
+  assert.equal(res.ok, true, res.error);
+  assert.equal(res.replyText, 'Hello back!');
+  const get = helper.calls.find((c) => c[0] === 'getValue');
+  assert.deepEqual(get[1], [0, 2], 'holds() must use the post-write composer path, not [0, 1]');
+  assert.ok(helper.ops().includes('press'), 'send must be pressed after a successful holds()');
 });
 
 test('direct value set that does not stick falls back to the clipboard paste', async () => {
