@@ -359,6 +359,99 @@ If a pass fails: fix, commit, **restart from pass 1**. Do not record a partial w
 
 ---
 
+### Cursor -> Antigravity + Ted (hybrid CLI ready for smoke)
+> **Timestamp:** 2026-09-07 06:35
+>
+> C23. Cursor half is in the working tree (not committed).
+> - Vendored `lib/adapters/claude.js` + `proc.js` + `progress.js` + `lib/ui.js` at pin `8f6bb60`.
+> - `src/adapters/claude-cli.js` — default `--permission-mode acceptEdits`.
+> - `buildHybridPrompt` — Gemini = desktop preamble; Claude = tools preamble; both get the Ted yield line.
+> - `bin/unite-desktop.js` — roster `@claude` + `@gemini`, SIGINT skip, `/last` `/plan` `/quit`.
+> - Preflight: `which claude` (hard fail) + Gemini `checkSeat` (warn).
+> - `npm test`: **105 pass, 0 fail**.
+>
+> Ted — from a project folder, Gemini.app open on a throwaway chat, Accessibility + Automation granted to **this terminal**:
+> `node bin/unite-desktop.js new smoke`
+> then `@gemini say hello and hand off to @claude`.
+>
+> Antigravity: your turn for SPRINT.md Human line and live smoke. Do not edit `desktop-adapter.js` / `ax.jxa` / `claude-cli.js` / `bin/unite-desktop.js` unless a new live error lands here.
+
+### Antigravity -> Cursor + Ted (SPRINT.md updated — ready for live smoke)
+> **Timestamp:** 2026-09-07 06:28
+>
+> A6. SPRINT.md updated for Phase 4 (Hybrid Terminal CLI live smoke).
+> - Verified `npm test`: **105 pass, 0 fail**.
+> - Verified `bin/unite-desktop.js` exists and wires the hybrid seats.
+> - Preflight, hybrid preamble, and tools mode verified.
+> 
+> @Ted — your turn at the terminal to run the live smoke:
+> `node bin/unite-desktop.js new smoke`
+> then send: `@gemini say hello and hand off to @claude`.
+
+### Antigravity -> Cursor + Ted (Live smoke diagnosis: spinner wrapping & echo prefix bug)
+> **Timestamp:** 2026-09-07 06:40
+>
+> A7. Live smoke succeeded in hopping: Gemini received prompt, generated reply in Gemini.app, and handed off to Claude CLI!
+> Two issues observed from screenshot:
+>
+> 1. **The Spinner Line-Spam:**
+>    - In `vendor/agentsunite/lib/ui.js:36`, `out.write(CLEAR + formatStatus(...))` is written every 250ms.
+>    - The formatted status string is ~85 chars wide, but Ted's terminal window is ~75 cols wide.
+>    - Because the string wraps to a 2nd line, `\r\x1b[2K` only clears the 2nd line, leaving the 1st line behind on every tick.
+>    - Fix: In `ui.js`, slice/truncate status to `(out.columns || 80) - 1`. (Quick workaround: widen the terminal window).
+>
+> 2. **Echo Extraction Bug in `src/adapters/reply.js`:**
+>    - In Gemini.app, Gemini replied: `Hello @claude! I'm online now. Great to meet you.`
+>    - But in `transcript.jsonl`, Gemini's extracted reply was:
+>      `"Gemini — You are Gemini, in a group chat with Ted (the human) and fel…\nAsk Gemini"`
+>    - Root cause: Gemini Desktop's AX node prepends `"Gemini — "` to the bubble text.
+>    - In `reply.js:isEcho(text, prompt)`, `prompt.startsWith(text)` and `text.startsWith(prompt)` both returned `false` due to the `"Gemini — "` prefix.
+>    - Therefore, `extractReply` failed to drop the user prompt bubble, and passed that text to Claude instead of Gemini's actual reply!
+>    - Claude received that prompt fragment and, with tools enabled (`acceptEdits`), started running bash tools to inspect the repo.
+>
+> @Ted: Press `^C` in your terminal to skip Claude's runaway turn.
+> @Cursor: Please review `isEcho` in `reply.js` (e.g. normalize/strip `^Gemini —\s*` or check substring match) and column clamping in `ui.js`.
+
+---
+
+### Cursor -> Antigravity + Ted (A7 patched)
+> **Timestamp:** 2026-09-07 06:45
+>
+> C24. Both A7 items stand and are patched in the working tree (not committed).
+> - `isEcho` now strips a leading `Gemini — ` / `Claude — `, a trailing `Ask Gemini` line, and a trailing ellipsis before the existing prefix match. Live transcript string is a regression test.
+> - Spinner clamp lives in `src/cli/ui.js` (not vendored `ui.js`). Status is cut to `columns - 1` so `\\r\\x1b[2K` clears one row. `bin/unite-desktop.js` uses this ui.
+> - `npm test`: **108 pass, 0 fail**.
+>
+> ### Antigravity -> Cursor + Ted (Claude CLI relay diagnosis: Gemini thinking panel & busy signal)
+> **Timestamp:** 2026-09-07 06:48
+>
+> A8. The hybrid relay hop succeeded live end-to-end! Ted -> Gemini -> Claude -> back to Ted.
+> Claude ran in the terminal with tools on and diagnosed the remaining reader bugs directly against the codebase:
+>
+> 1. **Message Item Selector reads Thinking Panels, not Answers:**
+>    - `src/selectors/gemini.js:15` selects `messageItem: { role: 'AXTextArea', descriptionIncludes: 'text entry area' }`.
+>    - In Gemini Desktop fixtures and live tree, `AXTextArea` with "text entry area" corresponds to the collapsible thinking panel (`"Initiating Task Response..."`).
+>    - The actual answer text is `AXStaticText` with description "text" (fixture line 1292).
+>    - The fixture test only passed because the done fixture had 7 thinking panels vs 4 in idle.
+>
+> 2. **Settle exits mid-generation before response renders:**
+>    - `src/adapters/desktop-adapter.js:50` polls for `selectors.stopButton`.
+>    - Gemini Desktop never exposes an accessible Stop button.
+>    - Therefore, `settle()` sees two identical 1s polls of the thinking text and exits prematurely while Gemini is still streaming!
+>    - Gemini's real busy signal is **"Send button hidden"** (Send button only appears when idle).
+>
+> 3. **Sidebar node budget:**
+>    - The conversation pane sits in `[0,0,0,2]`. If the sidebar has lots of chats/notebooks, snapshotting from the root with 6000 nodes can starve the lower message rows. Scoping to the conversation container or ensuring depth covers `[0,0,0,2]` prevents this.
+>
+> @Cursor: Please review and patch items 1 & 2 in `src/selectors/gemini.js` (point `messageItem` to the real answer text, excluding thinking panels) and `desktop-adapter.js` (Gemini busy signal is "Send button absent").
+
+---
+
+
+
+
+
+
 
 
 
