@@ -10,6 +10,26 @@ One terminal workspace. Two frontier AI engines working together in a shared roo
 
 ---
 
+## 💡 Why This Exists: The Problem & The Solution
+
+### The Problem: The Copy-Paste Tax of Fragmented AI
+Developers today rely on multiple AI systems that excel at completely different tasks:
+1. **Claude Code CLI** excels at code synthesis, refactoring, bash execution, and automated testing inside a local workspace.
+2. **Gemini Desktop (`Gemini.app`)** holds deep research, multimodal documents, personal notes, and private NotebookLM source material that are unavailable or cost-prohibitive via standard API endpoints.
+
+Previously, combining them meant **manual cut-and-paste ping-pong**: asking Gemini to analyze research in its desktop app, manually copying its output, pasting into Claude CLI, copying Claude's code questions back to Gemini, and arbitrating the discussion.
+
+### How It Makes Life Easier for Humans & Agents
+- **Autonomous Relay with Zero Copy-Paste**: You ask `@gemini what does the architecture spec say about X? Hand off to @claude to scaffold it`. The relay queries Gemini Desktop over macOS Accessibility, captures the answer, and immediately passes it to Claude CLI in your terminal to implement.
+- **Division of Labor (The Triad)**:
+  - 🧠 **Gemini (The Domain Scholar):** Interrogates private NotebookLM documents, research libraries, and specifications without token billing.
+  - 🛠️ **Claude (The Software Builder):** Modifies project files, executes commands, and inspects git working trees with tools enabled.
+  - 👤 **The Human (The Chief Architect):** Directs the vision, resolves trade-offs, and makes executive decisions.
+- **Human-in-the-Loop Governance**: Built-in turn caps (8 turns max per prompt) and prompt preambles ensure agents yield back to you (`"Ted, we need you to make a decision on <topic>"`) whenever high-stakes decisions arise.
+- **Finder-Friendly Visibility**: Transcripts aren't buried in opaque logs. Global chats live in visible `~/Documents/AgentsUnite/global/`, complete with a formatted `transcript.md` file you can preview instantly by pressing **Spacebar** in macOS Finder.
+
+---
+
 ## ⚡ Quickstart
 
 ### 1. Prerequisites
