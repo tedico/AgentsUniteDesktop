@@ -13,7 +13,7 @@ Building an Electron macOS desktop app that relays messages between the Claude d
 * **Active Plan:** [docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md](docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md) — 15 tasks; five spec deviations approved by Ted 2026-09-06
 * **Assigned Controller:** Cursor (Task 1 onward, per the spec's coding ranking)
 * **Planned Execution:** Cursor (bulk implementation) / Gemini / Claude
-* **Current Status:** Task 13 complete (renderer UI). Next: Task 14 (packaging).
+* **Current Status:** Task 14 complete (signed `.app` with vendored engine). Next: Task 15 (live smoke).
 
 ---
 

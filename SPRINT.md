@@ -10,10 +10,11 @@
 Phase 4 — Live smoke, packaging, the app's own Accessibility prompt
 
 ## Next
-Task 14 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (packaging)
+Task 15 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (live smoke)
 
 ## Human
-- Later: grant Accessibility and Automation to the packaged AgentsUnite Desktop app when it asks.
+- Packaging smoke (2026-09-06): `AgentsUnite Desktop.app` launched with `../AgentsUnite` renamed away; sibling restored.
+- Grant Accessibility and Automation to the packaged AgentsUnite Desktop app when it asks (first launch of the signed `.app`).
 - Run the live smoke twice (Task 15).
 
 ## Blockers
