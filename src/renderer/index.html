@@ -7,11 +7,23 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header id="room"></header>
+  <header id="top">
+    <span id="room"></span>
+    <span id="turns"></span>
+    <button id="settings-toggle" title="Settings">⚙︎</button>
+  </header>
+  <section id="settings" hidden>
+    <label>Project folder <input id="set-root" type="text" readonly> <button id="set-pick">Choose…</button></label>
+    <label>Chat name <input id="set-chat" type="text" pattern="[A-Za-z0-9._-]+"></label>
+    <label>Turn cap <input id="set-cap" type="number" min="1" max="50"></label>
+    <label>Timeout (seconds) <input id="set-timeout" type="number" min="5" max="1800"></label>
+    <button id="set-save">Save</button>
+    <span id="set-msg"></span>
+  </section>
   <section id="status"></section>
   <main id="transcript"></main>
   <footer id="composer-bar">
-    <textarea id="composer" rows="3" placeholder="Message the room — @claude, @gemini, @all" disabled></textarea>
+    <textarea id="composer" rows="3" placeholder="Message the room — @claude, @gemini, @all · Enter sends, Shift-Enter for a new line" disabled></textarea>
     <button id="send" disabled>Send</button>
   </footer>
   <script type="module" src="renderer.js"></script>
