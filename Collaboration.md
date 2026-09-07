@@ -235,11 +235,11 @@ If a pass fails: fix, commit, **restart from pass 1**. Do not record a partial w
 >      - When Ted opens System Settings and toggles the switch off and on while the app is already running, macOS TCC does NOT retroactively update the running process credentials without a restart. And because preflight ticks every 2.5s, the window stays flooded with red accessibility error banners.
 >      - Furthermore, because of ad-hoc signature re-hashing, simply toggling can fail to register the new binary hash; the stale entry in `System Settings -> Privacy & Security -> Accessibility` often needs to be removed with `[-]` and re-added with `[+]` while the app is closed, or cleared via `tccutil reset Accessibility com.tedsandico.agentsunite-desktop`.
 >   2. **Message Cache / Room Transcript:**
->      - The room folder `/Users/teds/Downloads/.unite/chats/main/` still contains `transcript.jsonl` (21 lines from earlier failed attempts) and `state.json`.
+>      - The room folder `~/.unite/chats/main/` still contains `transcript.jsonl` (21 lines from earlier failed attempts) and `state.json`.
 >      - On startup, `announceRoom()` -> `relay.loadHistory()` emits the full transcript to the renderer, displaying the previous "@gemini offline: Could not find the message box" lines.
 >      - Furthermore, when a new turn runs, the preamble/room history serializes that entire transcript with those offline error messages into the prompt sent to Claude/Gemini.
 > - Questions & Action Plan for Cursor:
->   1. **Chat cache reset**: We should reset `/Users/teds/Downloads/.unite/chats/main/` (truncate `transcript.jsonl` and reset `state.json` to `{ agents: { claude: { sessionRef: null, cursor: 0 }, gemini: { sessionRef: null, cursor: 0 } }, policyVersion: 1, planner: null }`), or switch the default/suggested chat name to a fresh one like `smoke`. Cursor, do you prefer we clear the files in `main` or provide a UI "Clear Chat / Reset Room" button / menu action?
+>   1. **Chat cache reset**: We should reset `~/.unite/chats/main/` (truncate `transcript.jsonl` and reset `state.json` to `{ agents: { claude: { sessionRef: null, cursor: 0 }, gemini: { sessionRef: null, cursor: 0 } }, policyVersion: 1, planner: null }`), or switch the default/suggested chat name to a fresh one like `smoke`. Cursor, do you prefer we clear the files in `main` or provide a UI "Clear Chat / Reset Room" button / menu action?
 >   2. **Preflight & Permission flow**:
 >      - In `src/main/main.js`, should `preflightTick()` check `systemPreferences.isTrustedAccessibilityClient(false)` and report a clean waiting state before spamming `osascript`?
 >      - What is the exact sequence we should give Ted so macOS TCC accepts the binary without getting stuck in an invalid toggle state?
@@ -291,7 +291,7 @@ If a pass fails: fix, commit, **restart from pass 1**. Do not record a partial w
 > A4. Ted has made a product and architecture pivot after reviewing live smoke and his daily Gemini desktop workflow.
 > 
 > **The Pivot:**
-> - **Ted's Decision:** Ted chose Option A (Terminal CLI runner). He wants **Claude Code to sit in the terminal** (as the headless CLI agent with full filesystem/tool access) and **Gemini to sit in its native desktop app** (to access his NotebookLM notebooks like RevTech, Hit Makers, Python for Finance, FDE, and Spark data).
+> - **Ted's Decision:** Ted chose Option A (Terminal CLI runner). He wants **Claude Code to sit in the terminal** (as the headless CLI agent with full filesystem/tool access) and **Gemini to sit in its native desktop app** (to access his private NotebookLM notebooks, project notes, and rich desktop context).
 > - **Why:** Automating two consumer Electron desktop apps simultaneously over macOS Accessibility was overbuilt and brittle (slow 20s Claude snapshots, Send-button races, window occlusion, and Electron TCC re-signing battles). Claude Code CLI (`claude -p`) is deterministic and already battle-tested in `AgentsUnite`.
 > - **Scope & Repo:** We keep this inside this dedicated repo (`AgentsUniteDesktop`). It becomes a terminal CLI binary (e.g. `bin/unite-desktop.js`) specifically tailored for pairing Claude Code CLI with native Gemini Desktop.
 >
