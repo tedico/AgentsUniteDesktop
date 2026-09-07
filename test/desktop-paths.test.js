@@ -58,8 +58,8 @@ test('syncTranscriptMarkdown generates clean markdown from transcript.jsonl', ()
   fs.mkdirSync(chat, { recursive: true });
 
   const jsonl = [
-    JSON.stringify({ from: 'ted', text: '@gemini tell me about RevTech', ts: '2026-09-07T11:00:00.000Z' }),
-    JSON.stringify({ from: 'gemini', text: 'RevTech covers revenue intelligence.', ts: '2026-09-07T11:00:05.000Z' }),
+    JSON.stringify({ from: 'ted', text: '@gemini tell me about Architecture', ts: '2026-09-07T11:00:00.000Z' }),
+    JSON.stringify({ from: 'gemini', text: 'Architecture covers core system design.', ts: '2026-09-07T11:00:05.000Z' }),
     JSON.stringify({ from: 'system', text: '(planning mode enabled)', ts: '2026-09-07T11:00:10.000Z' }),
   ].join('\n');
 
@@ -72,9 +72,9 @@ test('syncTranscriptMarkdown generates clean markdown from transcript.jsonl', ()
 
   assert.match(content, /# Chat: test-chat/);
   assert.match(content, /### \*\*Ted\*\*/);
-  assert.match(content, /@gemini tell me about RevTech/);
+  assert.match(content, /@gemini tell me about Architecture/);
   assert.match(content, /### \*\*Gemini\*\*/);
-  assert.match(content, /RevTech covers revenue intelligence\./);
+  assert.match(content, /Architecture covers core system design\./);
   assert.match(content, /> \*\*\[System/);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });

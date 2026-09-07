@@ -9,9 +9,9 @@ Reference engine: `/Users/teds/Projekts/AgentsUnite` (`lib/engine.js`, `lib/tran
 Ted runs planning conversations across the Claude desktop app and the Gemini
 desktop app. Today the relay between them is manual cut and paste, or Claude
 driving the Gemini window through computer use. The Gemini app is not
-replaceable by a CLI seat: it has NotebookLM notebooks (RevTech, Hit Makers,
-Python for Finance, FDE), months of chat context, and Spark. The Claude app
-likewise holds its own context.
+replaceable by a CLI seat: it has private NotebookLM notebooks, rich workspace
+context, and deep domain research. The Claude app likewise holds its own
+context.
 
 AgentsUnite Desktop is an Electron app that does the cut and paste: it reads
 each app's open chat, forwards replies between them by the CLI's @mention

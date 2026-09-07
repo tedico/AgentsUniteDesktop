@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AgentsUnite Desktop — Instruction Page</title>
+<style>
+  /* Printable one-pager. Source of truth: this file. Export: scripts/build-instructions.sh */
+  @page { size: Letter; margin: 0.42in 0.5in; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font: 10.6px/1.34 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #1a1a1a; background: #fff;
+  }
+  code, pre, kbd { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9.6px; }
+  code { background: #f1f1f1; padding: 0 3px; border-radius: 2px; }
+  pre { background: #f5f5f5; border: 1px solid #e3e3e3; border-radius: 3px; padding: 5px 7px; margin: 4px 0 6px; white-space: pre; overflow: hidden; }
+  h1 { font-size: 22px; margin: 0 0 1px; letter-spacing: -0.2px; }
+  .tag { color: #555; margin: 0 0 6px; font-size: 11px; }
+  hr.top { border: 0; border-top: 2px solid #222; margin: 0 0 8px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
+  h2 { font-size: 12px; margin: 7px 0 3px; padding: 2px 6px; background: #f0f0f0; border-left: 3px solid #333; }
+  h2:first-child { margin-top: 0; }
+  ul { margin: 2px 0 4px; padding-left: 14px; }
+  li { margin: 1px 0; }
+  p { margin: 2px 0; }
+  table { border-collapse: collapse; width: 100%; margin: 3px 0 5px; }
+  th, td { border: 1px solid #ddd; padding: 2px 5px; text-align: left; vertical-align: top; }
+  th { background: #f6f6f6; font-weight: 600; }
+  .callout { background: #fff8dc; border: 1px solid #eadc9a; border-radius: 3px; padding: 4px 7px; margin: 5px 0; }
+  .flow { color: #444; }
+  footer { border-top: 1px solid #ccc; margin-top: 8px; padding-top: 4px; color: #666; font-size: 9px; }
+</style>
+</head>
+<body>
+
+<h1>🤝 AgentsUnite Desktop — Instruction Page</h1>
+<p class="tag">Hybrid Terminal Runner: Ted + ✳️ Claude Code CLI (tools on) + ✦ Gemini Desktop (AX/JXA · NotebookLM)</p>
+<hr class="top">
+
+<div class="cols">
+<div>
+
+<h2>Setup &amp; macOS Permissions (Once)</h2>
+<ul>
+  <li><b>Install CLI:</b> symlinked to <code>~/.local/bin/AgentsUniteD</code> (or <code>unite-desktop</code>).</li>
+  <li><b>Prerequisites:</b> <code>claude</code> CLI on PATH; native <code>Gemini.app</code> installed.</li>
+  <li><b>macOS Permissions:</b> Grant your terminal (Terminal, iTerm2, Cursor) access under:
+    <br><code>System Settings → Privacy &amp; Security → Accessibility</code>
+    <br><code>System Settings → Privacy &amp; Security → Automation → System Events</code></li>
+</ul>
+
+<h2>Starting a Room</h2>
+<pre>AgentsUniteD               # resume latest chat, or start "main"
+AgentsUniteD new &lt;name&gt;    # start a new named chat room
+AgentsUniteD resume        # pick an existing chat interactively
+AgentsUniteD ls            # list all chat rooms
+AgentsUniteD -g            # GLOBAL mode (unattached to any repo)</pre>
+
+<h2>Talking &amp; Multi-Agent Relay</h2>
+<ul>
+  <li><b>@mentions drive routing</b> — <code>@claude</code> <code>@gemini</code>. Mentioned agents respond in turn sequence; later agents see previous replies.</li>
+  <li><b>No mention = a note</b> — logged to transcript, triggers nobody. (In planning mode, unadorned text routes straight to the planner).</li>
+  <li><b>Handoffs &amp; Collaboration</b> — when Gemini mentions <code>@claude</code>, Claude takes a turn automatically (and vice versa). Cap: <b>8 turns</b> per round.</li>
+  <li><b>Real-time status line</b> — shows phase (<code>starting → connected → thinking → replying</code>), tool name, and elapsed seconds.</li>
+</ul>
+
+<h2>Planning Mode (/plan)</h2>
+<ul>
+  <li><code>/plan</code> (or <code>/plans</code>) — <b>toggles planning mode ON/OFF</b>. When ON, <code>@claude</code> drives: all plain text goes directly to Claude without needing an <code>@claude</code> prefix.</li>
+  <li><code>/plan @seat</code> — assign another seat as lead planner (e.g. <code>/plan @gemini</code>).</li>
+  <li><code>/plan &lt;topic&gt;</code> — starts planning on a specific topic immediately.</li>
+  <li><code>/plan off</code> (or bare <code>/plan</code>) — ends planning mode; returns to mention routing.</li>
+</ul>
+
+<h2>Commands &amp; Shortcuts</h2>
+<table>
+  <tr><th>Input</th><th>Action</th></tr>
+  <tr><td><code>/plan</code></td><td>toggle planning mode ON / OFF (Claude drives by default)</td></tr>
+  <tr><td><code>/plan @seat</code></td><td>switch lead planner seat</td></tr>
+  <tr><td><code>/plan &lt;topic&gt;</code></td><td>initiate planning on topic immediately</td></tr>
+  <tr><td><code>/plan off</code></td><td>exit planning mode</td></tr>
+  <tr><td><code>/who</code></td><td>display active roster and adapter execution modes</td></tr>
+  <tr><td><code>/last</code></td><td>reprint the last received assistant reply</td></tr>
+  <tr><td><code>/last-error</code></td><td>diagnose adapter or system failure logs</td></tr>
+  <tr><td><code>/quit</code></td><td>exit cleanly (chat state and session persist)</td></tr>
+  <tr><td><kbd>Ctrl-C</kbd> ×1</td><td>skip the currently thinking agent turn</td></tr>
+  <tr><td><kbd>Ctrl-C</kbd> ×2</td><td>drain the queue and return control to Ted</td></tr>
+</table>
+
+</div>
+<div>
+
+<h2>Storage &amp; Finder QuickLook</h2>
+<ul>
+  <li><b>Global Mode (<code>-g</code>):</b> Stored in visible <code>~/Documents/AgentsUnite/global/&lt;chat&gt;/</code>. Fully browseable and cleanable in Finder. To delete a chat, just drag its folder to macOS Trash!</li>
+  <li><b>Project Mode:</b> Stored locally in <code>&lt;cwd&gt;/.unite/chats/&lt;chat&gt;/</code> with self-maintaining <code>.gitignore</code> so repo git status stays clean.</li>
+  <li><b>QuickLook Companion:</b> Every chat turn automatically updates a clean, human-readable <b><code>transcript.md</code></b> alongside <code>transcript.jsonl</code>. Tap <kbd>Spacebar</kbd> in Finder to read the conversation instantly!</li>
+</ul>
+
+<h2>How the Hybrid Architecture Works</h2>
+<ul>
+  <li><b>Claude Code CLI:</b> Spawns headlessly with <code>--permission-mode acceptEdits</code>, giving Claude full tool, terminal, and filesystem editing power in project mode.</li>
+  <li><b>Gemini Desktop:</b> Bridges to <code>Gemini.app</code> via macOS Accessibility (AX/JXA). Gives the terminal room full access to private NotebookLM sources and desktop features without API token limits.</li>
+  <li><b>Prompt Preamble:</b> Claude receives CLI tool instructions; Gemini receives clean conversational framing with the explicit directive to yield high-stakes architecture decisions to Ted.</li>
+  <li><b>Instant Feedback:</b> Startup spinner and rotating status messages run during preflight so you know the bridge is alive.</li>
+</ul>
+
+<div class="callout"><b>Tip:</b> If you want to brainstorm, review documents, or query your NotebookLM notebooks without touching any code repo, run <code>AgentsUniteD -g</code> from any terminal. It keeps all global chats neatly together in your Documents folder.</div>
+
+<h2>Troubleshooting</h2>
+<ul>
+  <li><code>[offline: -1743]</code> → macOS Apple Events denied. Enable System Events permission for your terminal in <i>System Settings → Privacy &amp; Security → Automation</i>.</li>
+  <li><code>[offline: -25211]</code> → Accessibility denied. Enable Accessibility for your terminal in <i>System Settings → Privacy &amp; Security → Accessibility</i>.</li>
+  <li><code>Gemini.app: no chat open</code> → Open <code>Gemini.app</code> and ensure a conversation is open with an active composer message box.</li>
+  <li><code>Status stuck at starting</code> → Press <kbd>Ctrl-C</kbd> to skip the turn, or run <code>/last-error</code>.</li>
+</ul>
+
+</div>
+</div>
+
+<footer>AgentsUnite Desktop · github.com/tedico/AgentsUniteDesktop · built 2026-09-07 by Ted with ✳️ Claude &amp; ✦ Antigravity · v0.1.0 · source: docs/instructions/AgentsUniteDesktop-Instructions.html</footer>
+
+</body>
+</html>
