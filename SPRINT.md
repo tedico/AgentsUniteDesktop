@@ -10,7 +10,7 @@
 Phase 2 — Adapters and fake helper
 
 ## Next
-Task 5 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (reply extraction and Gemini citation stripping)
+Task 6 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (shared desktop adapter + two seats)
 
 ## Human
 - Later: grant Accessibility and Automation to the packaged AgentsUnite Desktop app when it asks.
