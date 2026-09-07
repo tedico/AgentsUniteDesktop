@@ -209,4 +209,43 @@ If a pass fails: fix, commit, **restart from pass 1**. Do not record a partial w
 
 ---
 
+### Antigravity -> Cursor (live smoke blocker: permissions order & chat cache)
+> **Timestamp:** 2026-09-06 22:34
+>
+> A3. Live smoke blocked on two user-reported issues: permission toggle order of operations and leftover transcript cache.
+> - Command / UI action:
+>   1. Launching `/Applications/AgentsUnite Desktop.app`.
+>   2. Ted reports:
+>      "I think your order of operations is wrong because every time you fire it up, by the time the system setting gets to me, the toggle sequence is off or something like that. You might have to consult with Cursor what the issue is"
+>      "And what we also need to do is clear the messaging cache. Whatever it is on the window because it still has the prior messages' text on it"
+> - Exact error strings from screenshot (media_1788748242830):
+>   - Seat banners:
+>     `Claude — macOS denied accessibility access while reading Claude. Open System Settings -> Privacy & Security -> Accessibility, turn on AgentsUnite Desktop, then relaunch it.`
+>     `Gemini — macOS denied accessibility access while reading Gemini. Open System Settings -> Privacy & Security -> Accessibility, turn on AgentsUnite Desktop, then relaunch it.`
+>   - Message list in window:
+>     `System · 10:07 PM: @gemini offline: Could not find the message box (text did not land) in Gemini. The app's layout probably changed — update src/selectors/gemini.js.`
+> - Seats: Both Claude and Gemini.
+> - Process that ran osascript: Packaged `/Applications/AgentsUnite Desktop.app`.
+> - `npm test`: 95/95 pass.
+> - Analysis & Root Cause:
+>   1. **Permission Sequence & TCC Invalidation:**
+>      - In `src/main/main.js:82`, `systemPreferences.isTrustedAccessibilityClient(true)` is called on ready.
+>      - `openRoom()` and `preflightTick()` fire immediately afterwards without waiting or checking whether `isTrustedAccessibilityClient` is true.
+>      - Every time `scripts/package.mjs` runs `codesign --force --deep --sign -`, macOS creates a new ad-hoc CDHash. macOS TCC marks the old grant in Accessibility as invalid/stale for the newly signed binary.
+>      - When Ted opens System Settings and toggles the switch off and on while the app is already running, macOS TCC does NOT retroactively update the running process credentials without a restart. And because preflight ticks every 2.5s, the window stays flooded with red accessibility error banners.
+>      - Furthermore, because of ad-hoc signature re-hashing, simply toggling can fail to register the new binary hash; the stale entry in `System Settings -> Privacy & Security -> Accessibility` often needs to be removed with `[-]` and re-added with `[+]` while the app is closed, or cleared via `tccutil reset Accessibility com.tedsandico.agentsunite-desktop`.
+>   2. **Message Cache / Room Transcript:**
+>      - The room folder `/Users/teds/Downloads/.unite/chats/main/` still contains `transcript.jsonl` (21 lines from earlier failed attempts) and `state.json`.
+>      - On startup, `announceRoom()` -> `relay.loadHistory()` emits the full transcript to the renderer, displaying the previous "@gemini offline: Could not find the message box" lines.
+>      - Furthermore, when a new turn runs, the preamble/room history serializes that entire transcript with those offline error messages into the prompt sent to Claude/Gemini.
+> - Questions & Action Plan for Cursor:
+>   1. **Chat cache reset**: We should reset `/Users/teds/Downloads/.unite/chats/main/` (truncate `transcript.jsonl` and reset `state.json` to `{ agents: { claude: { sessionRef: null, cursor: 0 }, gemini: { sessionRef: null, cursor: 0 } }, policyVersion: 1, planner: null }`), or switch the default/suggested chat name to a fresh one like `smoke`. Cursor, do you prefer we clear the files in `main` or provide a UI "Clear Chat / Reset Room" button / menu action?
+>   2. **Preflight & Permission flow**:
+>      - In `src/main/main.js`, should `preflightTick()` check `systemPreferences.isTrustedAccessibilityClient(false)` and report a clean waiting state before spamming `osascript`?
+>      - What is the exact sequence we should give Ted so macOS TCC accepts the binary without getting stuck in an invalid toggle state?
+>   - Cursor, please review and let me know how you want to divide the fix or if you want to push the main.js / preflight tweak.
+
+
+---
+
 
