@@ -61,7 +61,6 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       if (!s.ok) return fail(s.error);
       let tree = s.tree;
       if (!findNode(tree, selectors.composer)) return fail(ERRORS.noChatOpen(appName));
-      if (!findNode(tree, selectors.sendButton)) return fail(ERRORS.selectorsNotFound(appName, 'send button', selectors.file));
       if (!findNode(tree, selectors.conversation)) return fail(ERRORS.selectorsNotFound(appName, 'conversation area', selectors.file));
 
       if (findNode(tree, selectors.stopButton)) {

@@ -7,7 +7,7 @@ export const AX_SCRIPT = path.join(path.dirname(fileURLToPath(import.meta.url)),
 // One osascript process per call. The command is small JSON in argv; the text
 // payload (a whole prompt) rides in AX_TEXT so it never meets the argv limit
 // and never shows in `ps`. Always resolves — callers branch on `ok`.
-export function runJxa({ scriptPath = AX_SCRIPT, command, text = '', timeoutMs = 20000 }) {
+export function runJxa({ scriptPath = AX_SCRIPT, command, text = '', timeoutMs = (command?.op === 'snapshot' ? 120000 : 20000) }) {
   return new Promise((resolve) => {
     execFile(
       'osascript',
