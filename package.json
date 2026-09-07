@@ -14,6 +14,7 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
     "electron": "^44.2.0"
   }
 }
