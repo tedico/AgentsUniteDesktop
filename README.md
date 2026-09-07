@@ -111,6 +111,33 @@ AgentsUniteD -g new market-research
 
 ---
 
+## 🧠 Lead Planner & Under-the-Hood Architecture
+
+### Changing the Lead Planner
+In both apps, the lead planner seat is fully configurable:
+- **On the fly (per session):** Type `/plan @gemini` or `/plan @gemini <topic>`. From that point forward, all unadorned plain-text inputs route directly to `@gemini`.
+- **Permanent default:** Add `"planner": "gemini"` to your project's `.unite/config.json`. Once configured, typing `/plan <topic>` will automatically designate Gemini as the lead driver.
+
+### Architectural Nuance: Desktop App vs. CLI App
+| App | Seat Name | Under the Hood | Automation Surface |
+| :--- | :--- | :--- | :--- |
+| **`AgentsUnite` (CLI)** | `@gemini` | **Google Antigravity CLI (`agy`)** | Terminal subprocess (stdin/stdout) |
+| **`AgentsUniteDesktop`** | `@gemini` | **Gemini macOS Desktop App (`com.google.GeminiMacOS`)** | Apple Accessibility API (`AXUIElement`) |
+
+#### Why does `AgentsUniteDesktop` exist?
+Unlike developer-focused tools that expose command-line interfaces or JSON streaming (like Claude Code or Antigravity), Google's official Gemini macOS application is a closed system:
+1. It exposes no local CLI or background daemon.
+2. It has no local IPC socket, WebSocket, or REST API.
+3. It does not provide a scriptable AppleScript dictionary (`sdef`).
+
+The **only** boundary exposed for automation is the operating system's Accessibility tree (`AXUIElement`). `AgentsUniteDesktop` acts as an automated bridge—reading text blocks, typing into the composer, simulating clicks on the send button, and monitoring streaming output—allowing a closed desktop consumer app to collaborate directly with developer CLI agents like Claude.
+
+* **Rule of Thumb:**
+  - If you are working in a pure terminal environment with headless `agy` or `cursor-agent`, use the **[`AgentsUnite`](https://github.com/tedico/AgentsUnite)** CLI.
+  - If you want to bridge macOS consumer desktop apps into your development room, use **`AgentsUniteDesktop`**.
+
+---
+
 ## 📂 Storage & Finder QuickLook
 
 ### Human-Readable Transcripts (`transcript.md`)
