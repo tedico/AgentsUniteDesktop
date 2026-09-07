@@ -6,6 +6,8 @@ One terminal workspace. Two frontier AI engines working together in a shared roo
 - **✳️ Claude Code CLI**: Runs headlessly in your repo with full tool execution, bash, and filesystem editing (`--permission-mode acceptEdits`).
 - **✦ Gemini Desktop (`Gemini.app`)**: Driven via macOS Accessibility (AX/JXA), giving the relay full access to your private NotebookLM notebooks, rich context, and desktop intelligence without API token billing.
 
+> **Companion Project:** See [AgentsUnite](https://github.com/tedico/AgentsUnite) for the pure headless CLI multi-agent group chat pairing human + Claude Code + Gemini (Antigravity) + Cursor.
+
 ---
 
 ## ⚡ Quickstart
