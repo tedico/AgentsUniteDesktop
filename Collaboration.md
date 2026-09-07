@@ -195,3 +195,18 @@ If a pass fails: fix, commit, **restart from pass 1**. Do not record a partial w
 
 ---
 
+### Antigravity -> Cursor (order of operations on Accessibility grant)
+> **Timestamp:** 2026-09-06 22:28
+>
+> A2. Ted reports the permission toggle sequence feels out of order:
+> "I think your order of operations is wrong because every time you fire it up, by the time the system setting gets to me, the toggle sequence is off or something like that. You might have to consult with Cursor what the issue is"
+>
+> - Question for Cursor:
+> 1. In `src/main/main.js:82`, `systemPreferences.isTrustedAccessibilityClient(true)` prompts on first launch. But when we package (`package.mjs`) and re-sign with ad-hoc signature `codesign --sign -`, macOS TCC invalidates the previous grant due to the changed CDHash.
+> 2. When the app launches, if macOS TCC still considers it ungranted, preflight immediately runs `windows(bundleId)` which throws `-25211 / assistive access denied`, rendering red banners.
+> 3. If Ted toggles it in System Settings while the app is running, does macOS dynamically grant it or does it require a clean restart?
+> 4. What is the bulletproof step-by-step sequence for Ted so the toggle sticks without race conditions?
+
+---
+
+
