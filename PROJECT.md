@@ -13,7 +13,7 @@ Building an Electron macOS desktop app that relays messages between the Claude d
 * **Active Plan:** [docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md](docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md) — 15 tasks; five spec deviations approved by Ted 2026-09-06
 * **Assigned Controller:** Cursor (Task 1 onward, per the spec's coding ranking)
 * **Planned Execution:** Cursor (bulk implementation) / Gemini / Claude
-* **Current Status:** Task 12 complete (Electron main, preload, window shell). Next: Task 13 (renderer UI).
+* **Current Status:** Task 13 complete (renderer UI). Next: Task 14 (packaging).
 
 ---
 
@@ -25,7 +25,7 @@ Building an Electron macOS desktop app that relays messages between the Claude d
 - [x] **Scaffolding & Engine Import** (Completed 2026-09-06 — Cursor) — Vendored engine from `/Users/teds/Projekts/AgentsUnite` at pin `8f6bb60` (pluggable `buildPrompt`).
 - [x] **Accessibility Probe Verification** (Completed 2026-09-06 — Cursor) — Five answers per app in docs/probe/findings.md; Claude Stop captured; Gemini Stop not seen.
 - [x] **Relay Loop & Turn-Taking** (Completed 2026-09-06 — Cursor) — `makeRelay` drives `runRound` over IPC; skip and `/plan` included.
-- [ ] **Electron Single-Window UI** — Unified dual-stream display and composer.
+- [x] **Electron Single-Window UI** (Completed 2026-09-06 — Cursor) — Transcript, composer, status strip, settings panel.
 
 ---
 
