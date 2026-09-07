@@ -13,6 +13,9 @@ test('every failure message names the app and says what to do', () => {
   assert.match(ERRORS.noWindow('Claude'), /full-screen on another Space/);
   assert.match(ERRORS.minimized('Claude'), /minimized to the Dock/);
   assert.match(ERRORS.emptyReply('Claude'), /no new text appeared/);
+  assert.match(ERRORS.accessibilityPending(), /Privacy & Security → Accessibility/);
+  assert.match(ERRORS.accessibilityPending(), /quit and reopen/);
+  assert.match(ERRORS.claudeNotOnPath(), /claude is not on PATH/);
 });
 
 test('describeAxError maps helper codes to catalog messages', () => {

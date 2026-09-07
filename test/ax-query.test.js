@@ -31,6 +31,16 @@ test('matches: exact role/subrole, case-insensitive substring on text fields', (
   assert.equal(matches(btn, { nameIncludes: 'x', role: undefined }), false);
 });
 
+test('matches: descriptionEquals is exact; nameExcludes drops thinking chrome', () => {
+  const answer = n('AXStaticText', { description: 'text', name: 'Hello @claude!' });
+  const think = n('AXStaticText', { description: 'text', name: 'Show thinking' });
+  const area = n('AXTextArea', { description: 'text entry area', name: null });
+  const sel = { role: 'AXStaticText', descriptionEquals: 'text', nameExcludes: 'Show thinking' };
+  assert.equal(matches(answer, sel), true);
+  assert.equal(matches(think, sel), false);
+  assert.equal(matches(area, sel), false);
+});
+
 test('matches: a text criterion against a null field is false; hasValue needs a string value', () => {
   assert.equal(matches(n('AXButton'), { nameIncludes: 'send' }), false);
   assert.equal(matches(n('AXTextArea', { value: null }), { hasValue: true }), false);

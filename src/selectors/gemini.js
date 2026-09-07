@@ -10,7 +10,13 @@ export default {
   stripCitations: true,        // [span_N](start_span) … (end_span) markers
   composer: { role: 'AXTextArea', descriptionIncludes: 'Ask Gemini' },
   sendButton: { role: 'AXButton', helpIncludes: 'Send' },
-  stopButton: { role: 'AXButton', helpIncludes: 'Stop' }, // not exposed in 2026-09-06 fixtures; live AX has no Stop string
+  stopButton: { role: 'AXButton', helpIncludes: 'Stop' }, // not exposed; live AX has no Stop string
+  // Idle empty composer shows a mic, not Send. Generating replaces both
+  // with an unlabeled button (help null). See busyWhenSendAbsent.
+  idleButton: { role: 'AXButton', helpIncludes: 'microphone' },
+  busyWhenSendAbsent: true,
   conversation: { role: 'AXWindow' },
-  messageItem: { role: 'AXTextArea', descriptionIncludes: 'text entry area' },
+  // Answers are AXStaticText description "text". Thinking panels are
+  // AXTextArea "text entry area" plus a "Show thinking" label.
+  messageItem: { role: 'AXStaticText', descriptionEquals: 'text', nameExcludes: 'Show thinking' },
 };

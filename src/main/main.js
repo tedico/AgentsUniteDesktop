@@ -8,7 +8,7 @@ import { geminiDesktopAdapter } from '../adapters/gemini-desktop.js';
 import claudeSelectors from '../selectors/claude.js';
 import geminiSelectors from '../selectors/gemini.js';
 import { makeRelay } from './relay.js';
-import { checkAll } from './preflight.js';
+import { tickPreflight } from './preflight.js';
 import { loadSettings, saveSettings, readRoomConfig, writeRoomConfig } from './settings.js';
 import { loadConfig } from '../../vendor/agentsunite/lib/config.js';
 import { ensureChat } from '../../vendor/agentsunite/lib/paths.js';
@@ -71,7 +71,8 @@ async function preflightTick() {
   if (!win || preflightRunning || relay?.busy) return;
   preflightRunning = true;
   try {
-    emit({ type: 'preflight', ...(await checkAll({ helper, selectorList: SEATS.map((s) => SELECTORS[s]) })) });
+    const trusted = systemPreferences.isTrustedAccessibilityClient(false);
+    emit({ type: 'preflight', ...(await tickPreflight({ trusted, helper, selectorList: SEATS.map((s) => SELECTORS[s]) })) });
   } finally { preflightRunning = false; }
 }
 

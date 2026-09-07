@@ -4,7 +4,8 @@
 // Node: { role, subrole, name, title, description, help, value, enabled,
 //         path: number[], children: Node[] }   (string fields may be null)
 // Selector: { role?, subrole?, nameIncludes?, titleIncludes?,
-//             descriptionIncludes?, helpIncludes?, hasValue? }
+//             descriptionIncludes?, descriptionEquals?, helpIncludes?,
+//             nameExcludes?, hasValue? }
 
 const TEXT_CRITERIA = [
   ['name', 'nameIncludes'],
@@ -24,6 +25,13 @@ export function matches(node, sel) {
     if (typeof hay !== 'string' || !hay.toLowerCase().includes(String(needle).toLowerCase())) return false;
   }
   if (sel.hasValue && typeof node.value !== 'string') return false;
+  if (sel.descriptionEquals != null) {
+    if (typeof node.description !== 'string' || node.description.toLowerCase() !== String(sel.descriptionEquals).toLowerCase()) return false;
+  }
+  if (sel.nameExcludes != null) {
+    const hay = node.name;
+    if (typeof hay === 'string' && hay.toLowerCase().includes(String(sel.nameExcludes).toLowerCase())) return false;
+  }
   return true;
 }
 

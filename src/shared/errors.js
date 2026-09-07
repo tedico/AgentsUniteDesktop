@@ -15,6 +15,10 @@ export const ERRORS = {
   minimized: (app) => `${app} is minimized to the Dock. Click it in the Dock to restore the window.`,
   emptyReply: (app) => `${app} finished but no new text appeared in the chat. Check the ${app} window, then send again.`,
   axTooSlow: (app) => `Reading the ${app} window took too long. Bring the chat into view and try again.`,
+  accessibilityPending: () =>
+    `Waiting for Accessibility. Open System Settings → Privacy & Security → Accessibility, turn on AgentsUnite Desktop, then quit and reopen this app.`,
+  claudeNotOnPath: () =>
+    `claude is not on PATH. Install Claude Code and make sure \`claude\` is on your PATH, then run again.`,
 };
 
 export function describeAxError({ code, error }, app) {

@@ -30,10 +30,18 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
         const v = await helper.getValue(bundleId, path);
         return v.ok && typeof v.value === 'string' && v.value.replace(/\r\n/g, '\n').trim() === prompt.replace(/\r\n/g, '\n').trim();
       };
+      // Claude: Stop visible. Gemini: Send hidden while generating, but Send
+      // is also hidden when idle+empty (mic shows). Busy = no Stop/Send/mic.
+      const isBusy = (tree) => {
+        if (findNode(tree, selectors.stopButton)) return true;
+        if (!selectors.busyWhenSendAbsent) return false;
+        if (findNode(tree, selectors.sendButton)) return false;
+        if (selectors.idleButton && findNode(tree, selectors.idleButton)) return false;
+        return true;
+      };
 
-      // Poll until the stop button is gone and the conversation text is the
-      // same across two consecutive polls. Used both for "the app was already
-      // generating when the turn started" and for the reply itself.
+      // Poll until not busy and the conversation text is the same across two
+      // consecutive polls. Used both for "already generating" and the reply.
       const settle = async (phase, baseChars) => {
         let last = null;
         let stable = 0;
@@ -47,7 +55,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
           const current = items(s.tree);
           const text = current.join('\n\n');
           if (phase) progress(phase, { chars: Math.max(0, text.length - baseChars) });
-          if (findNode(s.tree, selectors.stopButton)) { stable = 0; last = text; continue; }
+          if (isBusy(s.tree)) { stable = 0; last = text; continue; }
           stable = text === last ? stable + 1 : 0;
           last = text;
           if (stable >= 1) return { ok: true, tree: s.tree, items: current };
@@ -63,7 +71,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       if (!findNode(tree, selectors.composer)) return fail(ERRORS.noChatOpen(appName));
       if (!findNode(tree, selectors.conversation)) return fail(ERRORS.selectorsNotFound(appName, 'conversation area', selectors.file));
 
-      if (findNode(tree, selectors.stopButton)) {
+      if (isBusy(tree)) {
         const idle = await settle(null, 0);
         if (idle.aborted) return fail('skipped');
         if (idle.timedOut) return fail(ERRORS.appBusy(appName));

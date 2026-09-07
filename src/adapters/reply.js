@@ -18,11 +18,24 @@ export function extractReply({ before, after, prompt }) {
   return kept.join(blob ? '\n' : '\n\n').trim();
 }
 
+// Gemini.app prefixes the user bubble with "Gemini — " and may truncate
+// with an ellipsis or append composer chrome ("Ask Gemini").
+function normalizeEcho(s) {
+  return String(s ?? '')
+    .replace(/^(Gemini|Claude)\s+[—–-]\s*/i, '')
+    .replace(/\nAsk Gemini\s*$/i, '')
+    .replace(/[.…]+$/u, '')
+    .trim();
+}
+
 // The app shows our own prompt as a user bubble; some truncate long ones.
 function isEcho(text, prompt) {
-  if (text === prompt) return true;
-  if (text.length >= 40 && prompt.startsWith(text)) return true;
-  if (prompt.length >= 40 && text.startsWith(prompt)) return true;
+  const t = normalizeEcho(text);
+  const p = normalizeEcho(prompt);
+  if (!t || !p) return false;
+  if (t === p) return true;
+  if (t.length >= 40 && p.startsWith(t)) return true;
+  if (p.length >= 40 && t.startsWith(p)) return true;
   return false;
 }
 

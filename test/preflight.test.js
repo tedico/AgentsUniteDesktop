@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkSeat, checkAll } from '../src/main/preflight.js';
+import { checkSeat, checkAll, tickPreflight, checkClaudeCli, checkHybrid } from '../src/main/preflight.js';
 import { ERRORS } from '../src/shared/errors.js';
 import { makeFakeHelper } from './helpers/fake-helper.js';
 import { makeTree } from './helpers/trees.js';
@@ -40,6 +40,43 @@ test('composer present → ready; manual accessibility enabled first when the se
   const r = await checkSeat({ helper, selectors: { ...SEL, manualAccessibility: true } });
   assert.deepEqual(r, { seat: 'test', appName: 'TestApp', ready: true, message: 'TestApp: chat open' });
   assert.deepEqual(helper.ops(), ['isRunning', 'manualA11y', 'windows', 'snapshot']);
+});
+
+test('untrusted Accessibility: waiting state, helper never called', async () => {
+  const helper = makeFakeHelper({ trees: [makeTree()] });
+  const other = { ...SEL, seat: 'other', appName: 'Other' };
+  const r = await tickPreflight({ trusted: false, helper, selectorList: [SEL, other] });
+  assert.equal(r.ready, false);
+  assert.deepEqual(r.seats.map((s) => s.seat), ['test', 'other']);
+  for (const s of r.seats) {
+    assert.equal(s.ready, false);
+    assert.equal(s.message, ERRORS.accessibilityPending());
+  }
+  assert.deepEqual(helper.ops(), []);
+});
+
+test('trusted Accessibility: tickPreflight runs the normal checklist', async () => {
+  const helper = makeFakeHelper({ trees: [makeTree()] });
+  const r = await tickPreflight({ trusted: true, helper, selectorList: [SEL] });
+  assert.equal(r.ready, true);
+  assert.ok(helper.ops().includes('snapshot'));
+});
+
+test('checkClaudeCli: missing binary is not ready', async () => {
+  const r = await checkClaudeCli({ which: async () => null });
+  assert.equal(r.ready, false);
+  assert.equal(r.seat, 'claude');
+  assert.match(r.message, /claude is not on PATH/i);
+});
+
+test('checkHybrid is ready only when claude is on PATH and Gemini chat is open', async () => {
+  const helper = makeFakeHelper({ trees: [makeTree()] });
+  const gemini = { ...SEL, seat: 'gemini', appName: 'Gemini' };
+  const bad = await checkHybrid({ helper, geminiSelectors: gemini, which: async () => null });
+  assert.equal(bad.ready, false);
+  assert.deepEqual(bad.seats.map((s) => s.seat), ['claude', 'gemini']);
+  const good = await checkHybrid({ helper, geminiSelectors: gemini, which: async () => '/usr/local/bin/claude' });
+  assert.equal(good.ready, true);
 });
 
 test('checkAll is ready only when every seat is', async () => {

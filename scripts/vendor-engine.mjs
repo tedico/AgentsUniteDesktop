@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Copies the engine modules the desktop app imports out of the AgentsUnite
-// repo at the pinned commit into vendor/agentsunite/. Only the listed modules
-// and their relative-import closure are copied — never the CLI adapters, and
-// never anything outside lib/. The .app must not depend on ../AgentsUnite.
+// Copies the engine modules this repo imports out of the AgentsUnite repo
+// at the pinned commit into vendor/agentsunite/. Only the listed modules
+// and their relative-import closure are copied — never anything outside
+// lib/. Runtime must not import from ../AgentsUnite.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';

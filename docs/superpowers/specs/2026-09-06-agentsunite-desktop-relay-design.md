@@ -33,8 +33,12 @@ runs inside it. No CLI agent (`claude -p`, `agy`) is involved.
   directly; no sidecar.
 - The two apps are runtime dependencies. The desktop app checks for them on
   launch, offers to open a missing one, and waits for a composer in each
-  window before enabling send. Windows may sit behind others or on another
-  Space, but not minimized to the Dock.
+  window before enabling send. Windows may sit behind others, but not
+  minimized to the Dock and not full-screen on a separate Space: the
+  accessibility layer reports zero windows for a full-screen app on another
+  Space (verified during the 2026-09-06 probe). The start-up checklist
+  detects this case (window server shows a full-size window, accessibility
+  shows none) and tells Ted to exit full-screen.
 - One window for our app. The two source apps keep their own windows; macOS
   does not allow embedding another app's window.
 - Coding ranking for this build only: Cursor writes the bulk, Gemini next,

@@ -26,4 +26,10 @@ test('vendored engine exports what the desktop app imports', async () => {
   assert.equal(config.DEFAULT_CONFIG.timeoutMs, 300000);
   const cli = await import('../vendor/agentsunite/lib/cli.js');
   assert.equal(typeof cli.parsePlanCommand, 'function');
+  const claude = await import('../vendor/agentsunite/lib/adapters/claude.js');
+  assert.equal(typeof claude.claudeAdapter, 'function');
+  const proc = await import('../vendor/agentsunite/lib/proc.js');
+  assert.equal(typeof proc.runHeadless, 'function');
+  const ui = await import('../vendor/agentsunite/lib/ui.js');
+  assert.equal(typeof ui.makeUi, 'function');
 });

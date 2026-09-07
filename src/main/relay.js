@@ -1,7 +1,7 @@
 import { runRound, RoundControl, endPlanning } from '../../vendor/agentsunite/lib/engine.js';
 import { readTranscript, appendRoundError } from '../../vendor/agentsunite/lib/transcript.js';
 import { parsePlanCommand, PLAN_USAGE } from '../../vendor/agentsunite/lib/cli.js';
-import { buildDesktopPrompt } from './preamble.js';
+import { buildHybridPrompt } from './preamble.js';
 
 // The traffic cop. Calls the same runRound the CLI calls; the only things it
 // adds are a `ui` that emits events instead of printing, per-seat skip, and
@@ -63,7 +63,7 @@ export function makeRelay({ dir, adapters, config, emit, now = () => Date.now() 
       control = new RoundControl();
       emit({ type: 'round:start' });
       try {
-        await runRound({ dir, adapters, config, ui, control, buildPrompt: buildDesktopPrompt, ...round });
+        await runRound({ dir, adapters, config, ui, control, buildPrompt: buildHybridPrompt, ...round });
       } catch (err) {
         // A corrupt transcript line or a full disk must not take the app down.
         system(`Round failed: ${err?.message ?? err}`);

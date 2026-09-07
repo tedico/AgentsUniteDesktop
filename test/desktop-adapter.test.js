@@ -140,6 +140,41 @@ test('citations stripped when the selector file asks for it; manual accessibilit
   assert.equal(helper.ops()[1], 'manualA11y');
 });
 
+test('Gemini-style: settle stays busy while Send and mic are both absent', async () => {
+  const node = (role, extra = {}, children = []) => ({
+    role, subrole: null, name: null, title: null, description: null, help: null, value: null, enabled: true, path: [], children, ...extra,
+  });
+  const assign = (n, path = []) => {
+    n.path = path;
+    n.children.forEach((c, i) => assign(c, [...path, i]));
+    return n;
+  };
+  const tree = ({ messages, chrome }) => assign(node('AXApplication', {}, [
+    node('AXWindow', {}, [
+      node('AXGroup', { description: 'conversation' },
+        messages.map((text, i) => node('AXGroup', { description: i % 2 === 0 ? 'user message' : 'assistant message' }, [node('AXStaticText', { value: text })]))),
+      node('AXTextArea', { value: chrome === 'send' ? PROMPT : '', description: 'Message' }),
+      chrome === 'send' ? node('AXButton', { name: 'Send', help: 'Send (return)' }) : null,
+      chrome === 'mic' ? node('AXButton', { help: 'Use microphone' }) : null,
+      chrome === 'busy' ? node('AXButton', { description: 'button', help: null }) : null,
+    ].filter(Boolean)),
+  ]));
+  const sel = {
+    ...SEL,
+    sendButton: { role: 'AXButton', helpIncludes: 'Send' },
+    stopButton: { role: 'AXButton', nameIncludes: 'Stop' },
+    idleButton: { role: 'AXButton', helpIncludes: 'microphone' },
+    busyWhenSendAbsent: true,
+  };
+  const withText = tree({ messages: ['old q', 'old a'], chrome: 'send' });
+  const generating = tree({ messages: ['old q', 'old a', PROMPT], chrome: 'busy' });
+  const finished = tree({ messages: ['old q', 'old a', PROMPT, 'Hello back!'], chrome: 'mic' });
+  const helper = makeFakeHelper({ trees: [withText, withText, generating, generating, generating, finished] });
+  const res = await adapter(helper, { selectors: sel }).a.invoke({ prompt: PROMPT });
+  assert.equal(res.ok, true, res.error);
+  assert.equal(res.replyText, 'Hello back!');
+});
+
 test('press failure is described', async () => {
   const helper = makeFakeHelper({ trees: [idle], pressResult: { ok: false, code: 'script', error: 'no AXPress' } });
   const res = await adapter(helper).a.invoke({ prompt: PROMPT });

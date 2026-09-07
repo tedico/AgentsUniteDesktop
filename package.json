@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "main": "src/main/main.js",
+  "bin": {
+    "unite-desktop": "./bin/unite-desktop.js",
+    "AgentsUniteD": "./bin/unite-desktop.js"
+  },
   "scripts": {
     "test": "node --test test/*.test.js",
     "vendor:engine": "node scripts/vendor-engine.mjs",
-    "start": "electron .",
+    "start": "node bin/unite-desktop.js",
     "package": "node scripts/package.mjs"
   },
   "engines": {

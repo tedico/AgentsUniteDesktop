@@ -8,6 +8,8 @@
     "lib/deltas.js",
     "lib/config.js",
     "lib/paths.js",
-    "lib/cli.js"
+    "lib/cli.js",
+    "lib/adapters/claude.js",
+    "lib/ui.js"
   ]
 }

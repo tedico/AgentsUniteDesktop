@@ -47,6 +47,13 @@ for (const sel of [claude, gemini]) {
   });
 }
 
+test('gemini messageItem is answer static text, not thinking textareas', () => {
+  const done = itemTexts(findNode(fixture('gemini-done'), gemini.conversation), gemini.messageItem);
+  assert.ok(done.some((t) => /Hello! How can I help you today/.test(t)), done.join(' | '));
+  assert.ok(!done.some((t) => /Show thinking/i.test(t)));
+  assert.ok(!done.some((t) => /Clarifying Electron/i.test(t)));
+});
+
 test('claude needs AXManualAccessibility, gemini needs citation stripping', () => {
   assert.equal(claude.manualAccessibility, true);
   assert.equal(gemini.stripCitations, true);

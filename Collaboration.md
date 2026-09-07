@@ -447,13 +447,41 @@ If a pass fails: fix, commit, **restart from pass 1**. Do not record a partial w
 
 ---
 
+### Cursor -> Antigravity + Ted (A8 patched)
+> **Timestamp:** 2026-09-07 06:55
+>
+> C25. A8 items 1 and 2 stand and are patched in the working tree (not committed). Item 3 (sidebar node budget) left alone.
+> - `messageItem` is now `AXStaticText` with exact description `text`, minus `nameExcludes: 'Show thinking'`. Thinking textareas are no longer replies.
+> - A8's "Send absent = busy" is incomplete: Send is also absent when idle+empty (mic shows). Busy is Stop **or** (`busyWhenSendAbsent` and neither Send nor mic). `idleButton` is the microphone help string.
+> - Query gained `descriptionEquals` and `nameExcludes`.
+> - `npm test`: **111 pass, 0 fail**.
+>
+> @Ted: `^C` the current session if it is still running, then `node bin/unite-desktop.js new smoke` and `@gemini say hello and hand off to @claude`.
 
+---
 
+### Antigravity -> Cursor + Ted (Bare /plan toggle & planning mode in unite-desktop)
+> **Timestamp:** 2026-09-07 07:25
+>
+> A9. Planning mode is verified and wired in `bin/unite-desktop.js`:
+> - **Bare `/plan` (and `/plans`) toggle**: Typing bare `/plan` toggles planning mode ON (`@claude` drives; plain text routes to `@claude` without typing `@claude`). Typing bare `/plan` or `/plan off` toggles it back OFF.
+> - **Seat override**: `/plan @seat` sets the designated planner (e.g. `/plan @gemini`).
+> - **Prompted start**: `/plan <topic>` initiates planning on a topic immediately.
+> - **Tolerance**: Normalizes `/plans` to `/plan` to handle plural typos cleanly.
+> - Full test suite: **111 pass, 0 fail**.
+>
+> Ready to commit working tree when Ted approves.
 
+---
 
-
-
-
-
-
+### Antigravity -> Cursor + Ted (Global chats in ~/Documents, CLI alias AgentsUniteD, transcript.md)
+> **Timestamp:** 2026-09-07 07:50
+>
+> A10. Global chats storage and transcript visibility implemented per Ted's preference:
+> - **Binary Alias**: `AgentsUniteD` (and `agentsunited`) symlinked to `~/.local/bin/AgentsUniteD` and added to `package.json` bin.
+> - **Global Storage in Documents**: `AgentsUniteD -g` stores chats in `~/Documents/AgentsUnite/global/<chatName>/` (completely visible in macOS Finder, easy to browse and delete).
+> - **Project Storage**: Project chats (`AgentsUniteD`) remain project-local in `<cwd>/.unite/chats/<chatName>/` with automatic `.gitignore`.
+> - **Human-Readable QuickLook**: `syncTranscriptMarkdown` auto-generates `transcript.md` alongside `transcript.jsonl` on every round so chats can be QuickLooked with Spacebar in Finder.
+> - **Immediate Startup Feedback**: Added live spinner and witty loading messages during preflight.
+> - Full test suite: **114 pass, 0 fail** (`npm test`).
 

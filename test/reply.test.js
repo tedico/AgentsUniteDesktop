@@ -39,6 +39,18 @@ test('nothing new → empty string', () => {
   assert.equal(extractReply({ before: [], after: [P], prompt: P }), '');
 });
 
+test('per-bubble: Gemini — prefix on the echoed prompt is still the echo', () => {
+  const after = [`Gemini — ${P}`, 'Hello @claude! I\'m online now. Great to meet you.'];
+  assert.equal(extractReply({ before: [], after, prompt: P }), 'Hello @claude! I\'m online now. Great to meet you.');
+});
+
+test('per-bubble: Gemini — prefix plus truncated ellipsis and Ask Gemini chrome still drops the echo', () => {
+  const prompt = 'You are Gemini, in a group chat with Ted (the human) and fellow agents: Claude.\nHouse rules: be concise.';
+  const echo = 'Gemini — You are Gemini, in a group chat with Ted (the human) and fel…\nAsk Gemini';
+  const after = [echo, 'Hello @claude! I\'m online now. Great to meet you.'];
+  assert.equal(extractReply({ before: [], after, prompt }), 'Hello @claude! I\'m online now. Great to meet you.');
+});
+
 test('code blocks survive as text', () => {
   const reply = 'Here:\n```js\nconsole.log(1)\n```';
   assert.equal(extractReply({ before: [], after: [P, reply], prompt: P }), reply);

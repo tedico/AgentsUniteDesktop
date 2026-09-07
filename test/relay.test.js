@@ -46,8 +46,9 @@ test('one mention: ted echo, round/turn events, reply, transcript written, deskt
   assert.equal(events[5].text, 'claude says ok');
   const t = readTranscript(dir);
   assert.deepEqual(t.map((m) => m.from), ['ted', 'claude']);
-  assert.match(claude.calls[0].prompt, /^You are Claude, in a group chat/);
-  assert.doesNotMatch(claude.calls[0].prompt, /terminal/);
+  assert.match(claude.calls[0].prompt, /^You are Claude/);
+  assert.match(claude.calls[0].prompt, /tools/i);
+  assert.doesNotMatch(claude.calls[0].prompt, /read-only/i);
   assert.equal(relay.busy, false);
 });
 
