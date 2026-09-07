@@ -7,10 +7,10 @@
 - [ ] Phase 4 — Live smoke, packaging, the app's own Accessibility prompt
 
 ## Current phase
-Phase 1 — Probe and fixtures
+Phase 2 — Adapters and fake helper
 
 ## Next
-Task 4 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (selector files, verified against fixtures)
+Task 5 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (reply extraction and Gemini citation stripping)
 
 ## Human
 - Later: grant Accessibility and Automation to the packaged AgentsUnite Desktop app when it asks.

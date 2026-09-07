@@ -10,7 +10,7 @@ Claude.app version: 1.46388.4 · Gemini.app version: 1.82.2.534
 | 1. Tree readable (snapshot ok, composer visible in it) | yes | yes |
 | 2. Composer accepts a direct value set (`write` lands) | yes | yes |
 | 3. Send button reachable (`press` sends the text) | yes — `description: "Send message"` (after context-limit error cleared) | yes — `help: "Send (return)"` (only after composer has text) |
-| 4. Stop button visible while generating (in streaming fixture) | yes — `description: "Stop response"` | no — 15–27s snapshots miss the generation window |
+| 4. Stop button visible while generating (in streaming fixture) | yes — `description: "Stop response"` | no — live AX replaces Send/mic with an unlabeled `AXButton` (`description: "button"`, `help: null`); no "Stop" string |
 | 5. Reply readable including code blocks (in done fixture) | yes — sentence + JS in `AXStaticText` / `AXGroup` `js code` | yes — reply + thinking textareas; JS/code markers present |
 
 ## Timings
@@ -19,7 +19,7 @@ Claude.app version: 1.46388.4 · Gemini.app version: 1.82.2.534
 
 ## Selectors chosen (copied into src/selectors/*.js in Task 4)
 Claude: composer `{ role: 'AXTextArea', descriptionIncludes: 'Write your prompt' }` · send `{ role: 'AXButton', descriptionIncludes: 'Send message' }` · stop `{ role: 'AXButton', descriptionIncludes: 'Stop' }` · conversation `{ role: 'AXGroup', descriptionIncludes: 'Primary pane' }` · messageItem `{ role: 'AXGroup', descriptionIncludes: 'Message ' }` (idle has none; Task 4 then treats the pane as one item)
-Gemini: composer `{ role: 'AXTextArea', descriptionIncludes: 'Ask Gemini' }` · send `{ role: 'AXButton', helpIncludes: 'Send' }` · stop `not seen` · conversation `{ role: 'AXScrollArea' }` (the one that is not the composer) · messageItem `{ role: 'AXTextArea', descriptionIncludes: 'text entry area' }`
+Gemini: composer `{ role: 'AXTextArea', descriptionIncludes: 'Ask Gemini' }` · send `{ role: 'AXButton', helpIncludes: 'Send' }` · stop `{ role: 'AXButton', helpIncludes: 'Stop' }` (no match in fixtures; unlabeled chrome button) · conversation `{ role: 'AXWindow' }` (first `AXScrollArea` is the composer) · messageItem `{ role: 'AXTextArea', descriptionIncludes: 'text entry area' }`
 
 ## Surprises
 - Claude composer is depth ~27 (`Write your prompt to Claude`). Sidebar/history can stall a full-depth walk.
