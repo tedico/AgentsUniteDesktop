@@ -10,7 +10,7 @@
 Phase 3 — Engine wiring and the window
 
 ## Next
-Task 7 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (upstream pluggable `buildPrompt`)
+Task 8 of docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md (desktop preamble)
 
 ## Human
 - Later: grant Accessibility and Automation to the packaged AgentsUnite Desktop app when it asks.

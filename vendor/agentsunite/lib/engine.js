@@ -1,5 +1,5 @@
 import { parseMentions } from './mentions.js';
-import { buildPrompt, POLICY_NOTICE, POLICY_VERSION, planNotice, PLAN_END_NOTICE } from './deltas.js';
+import { buildPrompt as defaultBuildPrompt, POLICY_NOTICE, POLICY_VERSION, planNotice, PLAN_END_NOTICE } from './deltas.js';
 import { appendMessage, readTranscript, loadState, saveState, appendErrorLog } from './transcript.js';
 
 // Change 1: live sessions learn the new tool policy through the transcript,
@@ -32,7 +32,7 @@ async function invokeSafely(adapter, args) {
   }
 }
 
-export async function runRound({ humanText, dir, adapters, config, ui, control, planStart = false, planner = null }) {
+export async function runRound({ humanText, dir, adapters, config, ui, control, planStart = false, planner = null, buildPrompt = defaultBuildPrompt }) {
   const roster = config.roster.filter((s) => adapters[s]);
   const now = () => new Date().toISOString();
   const state = loadState(dir, roster);
