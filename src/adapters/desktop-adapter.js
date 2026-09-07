@@ -28,7 +28,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       const items = (tree) => itemTexts(findNode(tree, selectors.conversation), selectors.messageItem);
       const holds = async (path) => {
         const v = await helper.getValue(bundleId, path);
-        return v.ok && typeof v.value === 'string' && v.value.trim() === prompt.trim();
+        return v.ok && typeof v.value === 'string' && v.value.replace(/\r\n/g, '\n').trim() === prompt.replace(/\r\n/g, '\n').trim();
       };
 
       // Poll until the stop button is gone and the conversation text is the

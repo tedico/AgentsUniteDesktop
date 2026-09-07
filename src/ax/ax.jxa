@@ -63,8 +63,20 @@ function manualA11y(proc) {
   catch (e) { return { ok: true, applied: false, error: String(e) }; }
 }
 
-function windows(proc) {
+function ensureWindows(proc) {
   var wins = proc.windows();
+  if (wins.length === 0) {
+    try {
+      Application(proc.bundleIdentifier()).activate();
+      $.NSThread.sleepForTimeInterval(0.3);
+      wins = proc.windows();
+    } catch (e) {}
+  }
+  return wins;
+}
+
+function windows(proc) {
+  var wins = ensureWindows(proc);
   var minimized = 0;
   for (var i = 0; i < wins.length; i++) {
     try { if (wins[i].attributes.byName('AXMinimized').value() === true) minimized++; } catch (e) {}
@@ -73,7 +85,7 @@ function windows(proc) {
 }
 
 function elementAt(proc, path) {
-  var wins = proc.windows();
+  var wins = ensureWindows(proc);
   if (wins.length === 0) throw tagged('noWindow', 'no accessible window');
   var el = wins[path[0]];
   for (var i = 1; i < path.length; i++) el = el.uiElements[path[i]];
@@ -84,7 +96,7 @@ function snapshot(proc, cmd) {
   var budget = { left: cmd.maxNodes };
   var path = cmd.path || [];
   if (path.length === 0) {
-    var wins = proc.windows();
+    var wins = ensureWindows(proc);
     if (wins.length === 0) throw tagged('noWindow', 'no accessible window');
     var roots = [];
     for (var w = 0; w < wins.length && budget.left > 0; w++) {
@@ -171,6 +183,8 @@ function paste(proc, bundleId, path, text) {
     Application(bundleId).activate();
     $.NSThread.sleepForTimeInterval(0.25);
     try { el.focused = true; } catch (e) {}
+    $.NSThread.sleepForTimeInterval(0.1);
+    SE.keystroke('a', { using: 'command down' });
     $.NSThread.sleepForTimeInterval(0.1);
     SE.keystroke('v', { using: 'command down' });
     $.NSThread.sleepForTimeInterval(0.25);
