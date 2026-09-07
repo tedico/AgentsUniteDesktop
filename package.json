@@ -10,5 +10,10 @@
     "start": "electron .",
     "package": "node scripts/package.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^44.2.0"
+  }
 }
