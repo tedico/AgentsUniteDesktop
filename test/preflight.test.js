@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkSeat, checkAll, tickPreflight, checkClaudeCli, checkHybrid } from '../src/main/preflight.js';
+import { checkSeat, checkAll, tickPreflight, checkClaudeCli, checkHybrid, checkNotebooklm } from '../src/main/preflight.js';
 import { ERRORS } from '../src/shared/errors.js';
 import { makeFakeHelper } from './helpers/fake-helper.js';
 import { makeTree } from './helpers/trees.js';
@@ -11,10 +11,13 @@ test('not running → not ready, offers to open the app', async () => {
   assert.deepEqual(r, { seat: 'test', appName: 'TestApp', ready: false, message: ERRORS.appNotRunning('TestApp'), canOpen: true });
 });
 
-test('running, zero accessible windows → full-screen/hidden message', async () => {
-  const r = await checkSeat({ helper: makeFakeHelper({ windows: { ok: true, count: 0, minimized: 0 } }), selectors: SEL });
+test('running, zero accessible windows → observed-state message, no guessed Space', async () => {
+  const windows = { ok: true, count: 0, minimized: 0, frontmost: false, activate: { attempted: true, succeeded: false, error: null } };
+  const r = await checkSeat({ helper: makeFakeHelper({ windows }), selectors: SEL });
   assert.equal(r.ready, false);
-  assert.equal(r.message, ERRORS.noWindow('TestApp'));
+  assert.equal(r.message, ERRORS.noWindow('TestApp', windows));
+  assert.match(r.message, /windows=0/);
+  assert.doesNotMatch(r.message, /full-screen on another Space/);
   assert.equal(r.canOpen, undefined);
 });
 
@@ -77,6 +80,22 @@ test('checkHybrid is ready only when claude is on PATH and Gemini chat is open',
   assert.deepEqual(bad.seats.map((s) => s.seat), ['claude', 'gemini']);
   const good = await checkHybrid({ helper, geminiSelectors: gemini, which: async () => '/usr/local/bin/claude' });
   assert.equal(good.ready, true);
+});
+
+test('checkNotebooklm: unbound is skipped; missing binary and auth lapse are named', async () => {
+  const skip = await checkNotebooklm({ notebookId: null, which: async () => '/bin/notebooklm' });
+  assert.equal(skip.ready, true);
+  assert.match(skip.message, /not bound/i);
+  const missing = await checkNotebooklm({ notebookId: 'nb-1', which: async () => null });
+  assert.equal(missing.ready, false);
+  assert.equal(missing.message, ERRORS.notebooklmNotOnPath());
+  const expired = await checkNotebooklm({
+    notebookId: 'nb-1',
+    which: async () => '/bin/notebooklm',
+    run: async () => ({ code: 1, stdout: '', stderr: 'Not authenticated. Run notebooklm login.', spawnError: false }),
+  });
+  assert.equal(expired.ready, false);
+  assert.equal(expired.message, ERRORS.notebooklmLogin());
 });
 
 test('checkAll is ready only when every seat is', async () => {

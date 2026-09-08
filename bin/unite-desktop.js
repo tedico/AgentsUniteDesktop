@@ -13,6 +13,9 @@ import { makeAxHelper } from '../src/ax/helper.js';
 import geminiSelectors from '../src/selectors/gemini.js';
 import { buildHybridPrompt } from '../src/main/preamble.js';
 import { checkHybrid } from '../src/main/preflight.js';
+import { withErrorLogs } from '../src/main/log-adapter.js';
+import { groundRound } from '../src/main/notebook.js';
+import { notebooklmCliAdapter } from '../src/adapters/notebooklm-cli.js';
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -79,6 +82,7 @@ try {
     helper,
     geminiSelectors,
     binary: config.binaries?.claude ?? 'claude',
+    notebookId: config.notebookId ?? null,
   });
 } finally {
   if (loaderTimer) clearInterval(loaderTimer);
@@ -124,6 +128,7 @@ if (cmd === 'new') {
 }
 const dir = ensureChat(storageRoot, chatName, { isGlobal, cwd: root });
 syncTranscriptMarkdown(dir, chatName);
+const loggedAdapters = withErrorLogs(adapters, dir);
 
 const bannerPrefix = isGlobal ? 'unite-desktop [GLOBAL] — ' : 'unite-desktop — ';
 const chatLocation = isGlobal ? ' (~/Documents/AgentsUnite/global)' : '';
@@ -138,7 +143,26 @@ async function startRound(extra) {
   activeControl = new RoundControl();
   sigints = 0;
   try {
-    await runRound({ dir, adapters, config, ui, control: activeControl, buildPrompt: buildHybridPrompt, ...extra });
+    let notebookContext = null;
+    if (config.notebookId) {
+      const g = await groundRound({
+        question: extra.humanText,
+        dir,
+        notebookId: config.notebookId,
+        ask: (args) => notebooklmCliAdapter({
+          notebookId: config.notebookId,
+          allowNew: config.notebookNew === true,
+          timeoutMs: 120000,
+        }).invoke(args),
+      });
+      if (!g.ok) ui.printSystem(g.error);
+      else notebookContext = g.text;
+    }
+    await runRound({
+      dir, adapters: loggedAdapters, config, ui, control: activeControl,
+      buildPrompt: (args) => buildHybridPrompt({ ...args, notebookContext }),
+      ...extra,
+    });
   } catch (err) {
     ui.printSystem(`(round failed: ${err?.message ?? err})`);
     appendRoundError(dir, err);

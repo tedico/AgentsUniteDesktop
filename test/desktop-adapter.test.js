@@ -22,11 +22,13 @@ test('happy path: set value, press send, poll until stable, return the new reply
   const { a } = adapter(helper);
   const evts = [];
   const res = await a.invoke({ prompt: PROMPT, sessionRef: null, onProgress: (e) => evts.push(e) });
-  assert.deepEqual(res, { ok: true, replyText: 'Hello back!', sessionRef: 'desktop:test' });
-  assert.deepEqual(helper.ops(), ['isRunning', 'snapshot', 'setValue', 'snapshot', 'getValue', 'press', 'snapshot', 'snapshot', 'snapshot']);
+  assert.equal(res.ok, true);
+  assert.equal(res.replyText, 'Hello back!');
+  assert.equal(res.sessionRef, 'desktop:test');
+  assert.deepEqual(helper.ops(), ['isRunning', 'snapshot', 'setValue', 'snapshot', 'getValue', 'press', 'snapshot', 'snapshot', 'snapshot', 'snapshot']);
   assert.deepEqual(helper.calls[2].slice(1), [[0, 1], PROMPT]);           // composer path from the tree
   assert.deepEqual(helper.calls[5][1], [0, 2]);                           // send button path
-  assert.deepEqual(evts.map((e) => e.phase), ['pasting', 'sent', 'streaming', 'streaming', 'streaming', 'done']);
+  assert.deepEqual(evts.map((e) => e.phase), ['pasting', 'sent', 'streaming', 'streaming', 'streaming', 'streaming', 'done']);
   assert.ok(evts.at(-1).chars > 0);
   assert.equal(sessionRefFor('gemini'), 'desktop:gemini');
 });
@@ -38,7 +40,10 @@ test('sessionRef is constant even on failure so the engine never warns about a m
 
 test('app not running', async () => {
   const res = await adapter(makeFakeHelper({ running: false })).a.invoke({ prompt: PROMPT });
-  assert.deepEqual(res, { ok: false, error: ERRORS.appNotRunning('TestApp'), sessionRef: 'desktop:test' });
+  assert.equal(res.ok, false);
+  assert.equal(res.error, ERRORS.appNotRunning('TestApp'));
+  assert.equal(res.sessionRef, 'desktop:test');
+  assert.equal(res.errorCode, 'appNotRunning');
 });
 
 test('accessibility denied and automation denied name System Settings', async () => {
@@ -127,8 +132,42 @@ test('skip: an aborted signal stops polling and leaves the app alone', async () 
 
 test('finished but nothing new → emptyReply', async () => {
   const same = makeTree({ messages: ['old q', 'old a', PROMPT] });
-  const res = await adapter(makeFakeHelper({ trees: [idle, idle, same, same] })).a.invoke({ prompt: PROMPT });
-  assert.equal(res.error, ERRORS.emptyReply('TestApp'));
+  const helper = makeFakeHelper({ trees: [idle, idle, same, same] });
+  const res = await adapter(helper).a.invoke({ prompt: PROMPT });
+  assert.equal(res.error, ERRORS.emptyReply('TestApp', { messagesBefore: 2, messagesAfter: 3, thinkingChars: 0 }));
+  assert.match(res.stderr, /code=emptyReply/);
+  assert.match(res.stderr, /elapsedMs=/);
+  assert.match(res.stderr, /seat=test/);
+  const polls = (res.diagnostics?.trace ?? []).filter((row) => row.phase === 'awaiting-reply');
+  assert.ok(polls.length >= 2, 'settle polls must be traced');
+  for (let i = 1; i < polls.length; i++) {
+    assert.ok(polls[i].elapsedMs >= polls[i - 1].elapsedMs, 'elapsed is monotonic');
+  }
+  assert.ok(polls.every((row) => row.busy === true || row.busy === false));
+  assert.ok(polls.every((row) => ['stop', 'send', 'idle', 'none', 'thinking'].includes(row.via)));
+  assert.ok(polls.every((row) => Array.isArray(row.texts)));
+  assert.ok(polls.some((row) => row.texts.includes(PROMPT)));
+  assert.match(res.stderr, /old q/);
+});
+
+test('successful round attaches a poll trace for retention, not stderr', async () => {
+  const helper = makeFakeHelper({ trees: [idle, idle, streaming, done] });
+  const res = await adapter(helper).a.invoke({ prompt: PROMPT });
+  assert.equal(res.ok, true);
+  assert.equal(res.stderr, undefined);
+  assert.ok(res.diagnostics?.trace?.length >= 2);
+  assert.ok(res.diagnostics.trace.every((row) => typeof row.elapsedMs === 'number'));
+  assert.ok(res.diagnostics.trace.some((row) => row.texts?.includes('Hello back!')));
+  assert.deepEqual(helper.ops(), ['isRunning', 'snapshot', 'setValue', 'snapshot', 'getValue', 'press', 'snapshot', 'snapshot', 'snapshot', 'snapshot']);
+});
+
+test('two identical idle polls are not enough; a third is required before emptyReply', async () => {
+  const same = makeTree({ messages: ['old q', 'old a', PROMPT] });
+  const later = makeTree({ messages: ['old q', 'old a', PROMPT, 'Hello back!'] });
+  const helper = makeFakeHelper({ trees: [idle, idle, same, same, later] });
+  const res = await adapter(helper).a.invoke({ prompt: PROMPT });
+  assert.equal(res.ok, true, res.error);
+  assert.equal(res.replyText, 'Hello back!');
 });
 
 test('citations stripped when the selector file asks for it; manual accessibility enabled when asked', async () => {
@@ -170,6 +209,44 @@ test('Gemini-style: settle stays busy while Send and mic are both absent', async
   const generating = tree({ messages: ['old q', 'old a', PROMPT], chrome: 'busy' });
   const finished = tree({ messages: ['old q', 'old a', PROMPT, 'Hello back!'], chrome: 'mic' });
   const helper = makeFakeHelper({ trees: [withText, withText, generating, generating, generating, finished] });
+  const res = await adapter(helper, { selectors: sel }).a.invoke({ prompt: PROMPT });
+  assert.equal(res.ok, true, res.error);
+  assert.equal(res.replyText, 'Hello back!');
+});
+
+test('thinking-panel growth keeps settle busy even when mic looks idle, then returns the answer', async () => {
+  const node = (role, extra = {}, children = []) => ({
+    role, subrole: null, name: null, title: null, description: null, help: null, value: null, enabled: true, path: [], children, ...extra,
+  });
+  const assign = (n, path = []) => {
+    n.path = path;
+    n.children.forEach((c, i) => assign(c, [...path, i]));
+    return n;
+  };
+  const tree = ({ messages, think, chrome }) => assign(node('AXApplication', {}, [
+    node('AXWindow', {}, [
+      node('AXGroup', { description: 'conversation' },
+        messages.map((text, i) => node('AXGroup', { description: i % 2 === 0 ? 'user message' : 'assistant message' }, [node('AXStaticText', { value: text })]))),
+      ...(think ? [node('AXTextArea', { description: 'text entry area', value: think })] : []),
+      node('AXTextArea', { value: chrome === 'send' ? PROMPT : '', description: 'Message' }),
+      chrome === 'send' ? node('AXButton', { name: 'Send', help: 'Send (return)' }) : null,
+      chrome === 'mic' ? node('AXButton', { help: 'Use microphone' }) : null,
+    ].filter(Boolean)),
+  ]));
+  const sel = {
+    ...SEL,
+    sendButton: { role: 'AXButton', helpIncludes: 'Send' },
+    stopButton: { role: 'AXButton', nameIncludes: 'Stop' },
+    idleButton: { role: 'AXButton', helpIncludes: 'microphone' },
+    busyWhenSendAbsent: true,
+    thinkingItem: { role: 'AXTextArea', descriptionEquals: 'text entry area' },
+  };
+  const withText = tree({ messages: ['old q', 'old a'], chrome: 'send' });
+  const think1 = tree({ messages: ['old q', 'old a', PROMPT], think: 'Refining', chrome: 'mic' });
+  const think2 = tree({ messages: ['old q', 'old a', PROMPT], think: 'Refining the Format now', chrome: 'mic' });
+  const think3 = tree({ messages: ['old q', 'old a', PROMPT], think: 'Refining the Format now even more', chrome: 'mic' });
+  const finished = tree({ messages: ['old q', 'old a', PROMPT, 'Hello back!'], think: 'Refining the Format now even more', chrome: 'mic' });
+  const helper = makeFakeHelper({ trees: [withText, withText, think1, think2, think3, finished, finished] });
   const res = await adapter(helper, { selectors: sel }).a.invoke({ prompt: PROMPT });
   assert.equal(res.ok, true, res.error);
   assert.equal(res.replyText, 'Hello back!');

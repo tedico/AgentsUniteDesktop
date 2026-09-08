@@ -2,12 +2,14 @@ import { runRound, RoundControl, endPlanning } from '../../vendor/agentsunite/li
 import { readTranscript, appendRoundError } from '../../vendor/agentsunite/lib/transcript.js';
 import { parsePlanCommand, PLAN_USAGE } from '../../vendor/agentsunite/lib/cli.js';
 import { buildHybridPrompt } from './preamble.js';
+import { withErrorLogs } from './log-adapter.js';
 
 // The traffic cop. Calls the same runRound the CLI calls; the only things it
 // adds are a `ui` that emits events instead of printing, per-seat skip, and
 // the /plan commands the CLI handles in bin/unite.js. Never calls
 // applyPolicyNotice: that would post the CLI's tool policy into the room.
-export function makeRelay({ dir, adapters, config, emit, now = () => Date.now() }) {
+export function makeRelay({ dir, adapters, config, emit, now = () => Date.now(), groundNotebook } = {}) {
+  adapters = withErrorLogs(adapters, dir, now);
   let control = null;
   let activeSeat = null;
   const stamp = () => new Date(now()).toISOString();
@@ -62,8 +64,18 @@ export function makeRelay({ dir, adapters, config, emit, now = () => Date.now() 
       message('ted', round.humanText);
       control = new RoundControl();
       emit({ type: 'round:start' });
+      let notebookContext = null;
+      if (config.notebookId && groundNotebook) {
+        const g = await groundNotebook({ question: round.humanText, dir, notebookId: config.notebookId });
+        if (!g.ok) system(g.error);
+        else notebookContext = g.text;
+      }
       try {
-        await runRound({ dir, adapters, config, ui, control, buildPrompt: buildHybridPrompt, ...round });
+        await runRound({
+          dir, adapters, config, ui, control,
+          buildPrompt: (args) => buildHybridPrompt({ ...args, notebookContext }),
+          ...round,
+        });
       } catch (err) {
         // A corrupt transcript line or a full disk must not take the app down.
         system(`Round failed: ${err?.message ?? err}`);

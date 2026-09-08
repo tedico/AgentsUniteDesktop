@@ -6,6 +6,7 @@ import path from 'node:path';
 import { makeRelay } from '../src/main/relay.js';
 import { readTranscript, loadState } from '../vendor/agentsunite/lib/transcript.js';
 import { PLAN_USAGE } from '../vendor/agentsunite/lib/cli.js';
+import { ERRORS } from '../src/shared/errors.js';
 
 const CONFIG = { roster: ['claude', 'gemini'], turnCap: 8, timeoutMs: 1000, binaries: {}, models: {}, planner: 'claude' };
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'unite-relay-'));
@@ -78,6 +79,24 @@ test('adapter failure surfaces as a system line with the catalog message', async
   assert.match(sys.text, /offline: Claude is not running/);
 });
 
+test('degraded round writes errors.log so /last-error is not empty', async () => {
+  const claude = fakeAdapter('claude', [{
+    ok: false, error: ERRORS.emptyReply('Claude'), sessionRef: 'desktop:claude',
+  }]);
+  const { dir, relay } = setup({ claude, gemini: fakeAdapter('gemini') });
+  await relay.submit('@claude go');
+  const log = fs.readFileSync(path.join(dir, 'errors.log'), 'utf8');
+  assert.match(log, /claude/);
+  assert.match(log, /emptyReply|finished but no new text/i);
+  assert.match(log, /elapsedMs=/);
+});
+
+test('a successful round does not create errors.log', async () => {
+  const { dir, relay } = setup({ claude: fakeAdapter('claude'), gemini: fakeAdapter('gemini') });
+  await relay.submit('@claude hi');
+  assert.equal(fs.existsSync(path.join(dir, 'errors.log')), false);
+});
+
 test('skip only aborts the seat whose turn it is', async () => {
   const claude = { seat: 'claude', async invoke({ signal }) { return new Promise((res) => signal.addEventListener('abort', () => res({ ok: false, error: 'skipped', sessionRef: 'desktop:claude' }))); } };
   const { dir, relay } = setup({ claude, gemini: fakeAdapter('gemini') });
@@ -133,6 +152,44 @@ test('/plan: usage, off when not on, start sets the planner', async () => {
   assert.equal(loadState(dir, CONFIG.roster).planner, 'gemini');
   await relay.submit('/plan off');
   assert.equal(loadState(dir, CONFIG.roster).planner, null);
+});
+
+test('bound notebook: one ask per submit; seats see the block; auth fail is a system line and the seat still runs', async () => {
+  const asks = [];
+  const claude = fakeAdapter('claude');
+  const dir = tmp();
+  const ev = [];
+  const groundNotebook = async ({ question, notebookId }) => {
+    asks.push({ question, notebookId });
+    return { ok: false, error: ERRORS.notebooklmLogin() };
+  };
+  const r = makeRelay({
+    dir,
+    adapters: { claude, gemini: fakeAdapter('gemini') },
+    config: { ...CONFIG, notebookId: 'nb-1' },
+    emit: (e) => ev.push(e),
+    groundNotebook,
+  });
+  await r.submit('@claude go');
+  assert.deepEqual(asks, [{ question: '@claude go', notebookId: 'nb-1' }]);
+  assert.ok(ev.some((e) => e.type === 'message' && e.from === 'system' && /notebooklm login/i.test(e.text)));
+  assert.ok(ev.some((e) => e.type === 'message' && e.from === 'claude' && e.text === 'claude says ok'));
+  assert.match(claude.calls[0].prompt, /You are Claude/);
+});
+
+test('bound notebook injects the grounded answer into the seat prompt', async () => {
+  const claude = fakeAdapter('claude');
+  const dir = tmp();
+  const r = makeRelay({
+    dir,
+    adapters: { claude, gemini: fakeAdapter('gemini') },
+    config: { ...CONFIG, notebookId: 'nb-1' },
+    emit: () => {},
+    groundNotebook: async () => ({ ok: true, text: 'Directory is src/. [1]', sessionRef: 'c1' }),
+  });
+  await r.submit('@claude go');
+  assert.match(claude.calls[0].prompt, /Directory is src\/\. \[1\]/);
+  assert.match(claude.calls[0].prompt, /Ted's notebook/);
 });
 
 test('loadHistory emits the transcript', async () => {

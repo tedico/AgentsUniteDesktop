@@ -77,6 +77,13 @@ function pick(s) {
 // The conversation as one string per message bubble. Without a bubble
 // selector (or when it matches nothing) the whole container is one item, so
 // callers can still diff before/after text.
+// Character total of nodes the message selector deliberately excludes
+// (Gemini thinking panels: AXTextArea "text entry area").
+export function thinkingChars(root, thinkingSel) {
+  if (!root || !thinkingSel) return 0;
+  return findAll(root, thinkingSel).reduce((n, node) => n + collectText(node).length, 0);
+}
+
 export function itemTexts(container, itemSel) {
   if (!container) return [];
   const items = itemSel ? findAll(container, itemSel) : [];

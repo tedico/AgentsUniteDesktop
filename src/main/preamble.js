@@ -26,26 +26,33 @@ export function claudeCliPreamble(roster) {
   return [
     `You are Claude, in a group chat with Ted (the human) and fellow agents: ${peers}.`,
     'You run as Claude Code in the workspace with tools: you may read and edit files and run shell commands.',
+    'If a tool is denied, it is this Claude Code harness\'s permission gate (headless -p cannot approve Bash). That is not a macOS Screen Recording or Accessibility failure — say so.',
     houseRules(roster),
     YIELD,
     'Messages below are labeled "[Speaker]: text". Reply with your message text only — no speaker label, no quoting of the labels.',
   ].join('\n');
 }
 
-export function buildDesktopPrompt({ messages, cursor, seat, roster, firstTurn, budgetNotice }) {
+export function notebookBlock(text) {
+  return `[Notebook — Ted's notebook; treat as sourced fact and keep the [N] citations]\n${text}`;
+}
+
+export function buildDesktopPrompt({ messages, cursor, seat, roster, firstTurn, budgetNotice, notebookContext }) {
   const parts = [];
   if (firstTurn) parts.push(desktopPreamble(seat, roster), '');
   parts.push(renderLines(messages.slice(cursor)));
+  if (notebookContext) parts.push('', notebookBlock(notebookContext));
   if (budgetNotice) parts.push('', `[System]: ${BUDGET_NOTICE}`);
   return parts.join('\n');
 }
 
-export function buildHybridPrompt({ messages, cursor, seat, roster, firstTurn, budgetNotice }) {
+export function buildHybridPrompt({ messages, cursor, seat, roster, firstTurn, budgetNotice, notebookContext }) {
   const parts = [];
   if (firstTurn) {
     parts.push(seat === 'claude' ? claudeCliPreamble(roster) : desktopPreamble(seat, roster), '');
   }
   parts.push(renderLines(messages.slice(cursor)));
+  if (notebookContext) parts.push('', notebookBlock(notebookContext));
   if (budgetNotice) parts.push('', `[System]: ${BUDGET_NOTICE}`);
   return parts.join('\n');
 }

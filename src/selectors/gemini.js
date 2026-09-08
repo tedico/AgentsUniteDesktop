@@ -19,4 +19,7 @@ export default {
   // Answers are AXStaticText description "text". Thinking panels are
   // AXTextArea "text entry area" plus a "Show thinking" label.
   messageItem: { role: 'AXStaticText', descriptionEquals: 'text', nameExcludes: 'Show thinking' },
+  thinkingItem: { role: 'AXTextArea', descriptionEquals: 'text entry area' },
+  // Gemini publishes zero windows until activate; AX snapshots measured 14–27s.
+  activateWaitMs: 30000,
 };

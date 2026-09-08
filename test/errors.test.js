@@ -10,12 +10,20 @@ test('every failure message names the app and says what to do', () => {
   assert.match(ERRORS.selectorsNotFound('Claude', 'send button', 'src/selectors/claude.js'), /send button.*src\/selectors\/claude\.js/);
   assert.match(ERRORS.replyTimedOut('Gemini', 300), /Gemini did not finish a reply within 300s/);
   assert.match(ERRORS.appBusy('Gemini'), /still generating/);
-  assert.match(ERRORS.noWindow('Claude'), /full-screen on another Space/);
+  assert.match(ERRORS.noWindow('Claude'), /no readable window/);
+  assert.doesNotMatch(ERRORS.noWindow('Claude'), /full-screen on another Space/);
+  assert.match(ERRORS.noWindow('Gemini', { count: 0, minimized: 0, frontmost: false, activate: { attempted: true, succeeded: false, error: 'timeout' } }), /windows=0/);
+  assert.match(ERRORS.noWindow('Gemini', { count: 0, minimized: 0, frontmost: false, activate: { attempted: true, succeeded: false, error: 'timeout' } }), /frontmost=false/);
+  assert.match(ERRORS.noWindow('Gemini', { count: 0, minimized: 0, frontmost: false, activate: { attempted: true, succeeded: false, error: 'timeout' } }), /activate/);
   assert.match(ERRORS.minimized('Claude'), /minimized to the Dock/);
   assert.match(ERRORS.emptyReply('Claude'), /no new text appeared/);
+  assert.match(ERRORS.emptyReply('Gemini', { thinkingChars: 737, messagesBefore: 2, messagesAfter: 2 }), /thinking text is still on screen/);
   assert.match(ERRORS.accessibilityPending(), /Privacy & Security → Accessibility/);
   assert.match(ERRORS.accessibilityPending(), /quit and reopen/);
   assert.match(ERRORS.claudeNotOnPath(), /claude is not on PATH/);
+  assert.match(ERRORS.notebooklmNotOnPath(), /notebooklm is not on PATH/);
+  assert.match(ERRORS.notebooklmLogin(), /notebooklm login/);
+  assert.doesNotMatch(ERRORS.notebooklmLogin(), /empty reply|no new text/i);
 });
 
 test('describeAxError maps helper codes to catalog messages', () => {

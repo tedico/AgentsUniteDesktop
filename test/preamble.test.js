@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { desktopPreamble, claudeCliPreamble, buildDesktopPrompt, buildHybridPrompt } from '../src/main/preamble.js';
+import { desktopPreamble, claudeCliPreamble, buildDesktopPrompt, buildHybridPrompt, notebookBlock } from '../src/main/preamble.js';
 import { BUDGET_NOTICE, TOOL_POLICY } from '../vendor/agentsunite/lib/deltas.js';
 
 const ROSTER = ['claude', 'gemini'];
@@ -44,6 +44,8 @@ test('claude CLI preamble allows tools and is not the unite read-only policy', (
   assert.ok(!p.includes(TOOL_POLICY));
   assert.doesNotMatch(p, /read-only/i);
   assert.doesNotMatch(p, /plan mode/i);
+  assert.match(p, /harness/i);
+  assert.match(p, /not a macOS/i);
 });
 
 test('hybrid prompt: Gemini gets the desktop preamble, Claude gets the CLI tools preamble', () => {
@@ -53,6 +55,19 @@ test('hybrid prompt: Gemini gets the desktop preamble, Claude gets the CLI tools
   const c = buildHybridPrompt({ messages: MSGS, cursor: 0, seat: 'claude', roster: ROSTER, firstTurn: true, budgetNotice: false });
   assert.match(c, /^You are Claude/);
   assert.match(c, /tools/i);
+});
+
+test('notebook context is labeled as sourced fact and keeps citations', () => {
+  const block = notebookBlock('The tree is src/. [1]');
+  assert.match(block, /Ted's notebook/);
+  assert.match(block, /\[1\]/);
+  const p = buildHybridPrompt({
+    messages: MSGS, cursor: 2, seat: 'claude', roster: ROSTER, firstTurn: false, budgetNotice: false,
+    notebookContext: 'The tree is src/. [1]',
+  });
+  assert.match(p, /\[Ted\]: @gemini your turn/);
+  assert.match(p, /The tree is src\/\. \[1\]/);
+  assert.match(p, /sourced fact/);
 });
 
 test('budget notice is appended as a [System] line', () => {

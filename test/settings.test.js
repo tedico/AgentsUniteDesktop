@@ -25,27 +25,35 @@ test('saveSettings round-trips and normalizes', () => {
 
 test('readRoomConfig: CLI defaults when no config file; file values otherwise', () => {
   const root = tmp();
-  assert.deepEqual(readRoomConfig(root), { turnCap: 8, timeoutMs: 300000 });
+  assert.deepEqual(readRoomConfig(root), { turnCap: 8, timeoutMs: 300000, notebookId: null });
   fs.mkdirSync(path.join(root, '.unite'), { recursive: true });
   fs.writeFileSync(path.join(root, '.unite', 'config.json'), JSON.stringify({ turnCap: 3, timeoutMs: 60000, roster: ['claude'] }));
-  assert.deepEqual(readRoomConfig(root), { turnCap: 3, timeoutMs: 60000 });
-  assert.deepEqual(readRoomConfig(null), { turnCap: 8, timeoutMs: 300000 });
+  assert.deepEqual(readRoomConfig(root), { turnCap: 3, timeoutMs: 60000, notebookId: null });
+  assert.deepEqual(readRoomConfig(null), { turnCap: 8, timeoutMs: 300000, notebookId: null });
 });
 
 test('writeRoomConfig: merges only turnCap/timeoutMs, keeps other CLI keys, validates ranges', () => {
   const root = tmp();
   fs.mkdirSync(path.join(root, '.unite'), { recursive: true });
   fs.writeFileSync(path.join(root, '.unite', 'config.json'), JSON.stringify({ roster: ['claude', 'gemini', 'cursor'], mcp: true }));
-  assert.deepEqual(writeRoomConfig(root, { turnCap: 4, timeoutMs: 120000 }), { turnCap: 4, timeoutMs: 120000 });
+  assert.deepEqual(writeRoomConfig(root, { turnCap: 4, timeoutMs: 120000 }), { turnCap: 4, timeoutMs: 120000, notebookId: null });
   const file = JSON.parse(fs.readFileSync(path.join(root, '.unite', 'config.json'), 'utf8'));
   assert.deepEqual(file, { roster: ['claude', 'gemini', 'cursor'], mcp: true, turnCap: 4, timeoutMs: 120000 });
   // out of range → unchanged
-  assert.deepEqual(writeRoomConfig(root, { turnCap: 0, timeoutMs: 1 }), { turnCap: 4, timeoutMs: 120000 });
-  assert.deepEqual(writeRoomConfig(root, { turnCap: 51, timeoutMs: 999999999 }), { turnCap: 4, timeoutMs: 120000 });
+  assert.deepEqual(writeRoomConfig(root, { turnCap: 0, timeoutMs: 1 }), { turnCap: 4, timeoutMs: 120000, notebookId: null });
+  assert.deepEqual(writeRoomConfig(root, { turnCap: 51, timeoutMs: 999999999 }), { turnCap: 4, timeoutMs: 120000, notebookId: null });
+});
+
+test('writeRoomConfig persists a chat-scoped notebookId', () => {
+  const root = tmp();
+  assert.deepEqual(writeRoomConfig(root, { turnCap: 8, timeoutMs: 300000, notebookId: 'nb-abc' }), {
+    turnCap: 8, timeoutMs: 300000, notebookId: 'nb-abc',
+  });
+  assert.equal(readRoomConfig(root).notebookId, 'nb-abc');
 });
 
 test('writeRoomConfig creates .unite/config.json when absent', () => {
   const root = tmp();
   writeRoomConfig(root, { turnCap: 2, timeoutMs: 30000 });
-  assert.deepEqual(readRoomConfig(root), { turnCap: 2, timeoutMs: 30000 });
+  assert.deepEqual(readRoomConfig(root), { turnCap: 2, timeoutMs: 30000, notebookId: null });
 });
