@@ -15,6 +15,24 @@ You do not need the original session, any particular LLM, or network access.
 Everything needed is in this repo plus the field notes at
 `docs/field-notes/2026-09-08-company-os-x.md`.
 
+### What is NOT changing — architectural guardrail
+
+This document is a list of fixes and two additions. It is **not** a re-architecture,
+and nothing in it licenses one. Confirmed by the repo owner, 2026-09-08:
+
+- **Gemini stays in its native desktop app**, driven over macOS Accessibility.
+  B2–B3 harden that path; they do not replace it. Do not propose or build a Gemini
+  CLI seat, and do not remove the desktop adapter.
+- **Claude stays as the headless terminal CLI seat** (`claude -p`), unchanged in
+  kind — B4 only makes its denials legible.
+- **Seat-to-seat conversation remains the product.** This is a brainstorming app:
+  two models talking to each other. Every change must leave that intact.
+- **B6 adds a shared data source, not a participant and not a replacement.** Its
+  purpose is that both seats stand on the same facts.
+
+If a proposed change makes the app do less of the above, it is out of scope for this
+spec regardless of how much cleaner it looks.
+
 ### Ground rules
 
 1. **Never edit `vendor/`.** It is generated from `../AgentsUnite` at the commit
