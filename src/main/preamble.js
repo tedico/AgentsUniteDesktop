@@ -1,4 +1,5 @@
 import { renderLines, BUDGET_NOTICE } from '../../vendor/agentsunite/lib/deltas.js';
+import { currentRound, lastSeatTurn } from './round.js';
 
 const NAME = { ted: 'Ted', claude: 'Claude', gemini: 'Gemini', system: 'System' };
 const YIELD =
@@ -11,6 +12,20 @@ export const HONESTY =
   'You see only the text pasted in this chat. Do not say you have read a file, spec, or notebook source unless its text appears above or you were given its notebook source title to open.';
 export const PLAIN_NUMBERS =
   'Write numbers, thresholds, dates and formulas as plain digits and words in prose or in backticks — never in math formatting. The relay cannot read rendered math; it arrives as blanks.';
+
+export const CLOSE_LINE = '[System]: Close the exchange for Ted — integrate the reply above briefly; @mention no one.';
+
+// This seat already spoke this round and a peer answered: tell it to close.
+// The engine's budget notice already says "synthesize, no mentions", so the
+// two never appear together.
+export function closeLine({ messages, seat, roster, budgetNotice }) {
+  if (budgetNotice) return null;
+  const round = currentRound(messages);
+  if (!round.some((m) => m.from === seat)) return null;
+  const last = lastSeatTurn(round, roster);
+  if (!last || last.from === seat) return null;
+  return CLOSE_LINE;
+}
 
 function houseRules(roster) {
   const handles = roster.map((s) => `@${s}`).join(', ');
@@ -54,6 +69,8 @@ export function buildDesktopPrompt({ messages, cursor, seat, roster, firstTurn, 
   const parts = [];
   if (firstTurn) parts.push(desktopPreamble(seat, roster), '');
   parts.push(renderLines(messages.slice(cursor)));
+  const close = closeLine({ messages, seat, roster, budgetNotice });
+  if (close) parts.push('', close);
   if (notebookContext) parts.push('', notebookBlock(notebookContext));
   if (budgetNotice) parts.push('', `[System]: ${BUDGET_NOTICE}`);
   return parts.join('\n');
@@ -65,6 +82,8 @@ export function buildHybridPrompt({ messages, cursor, seat, roster, firstTurn, b
     parts.push(seat === 'claude' ? claudeCliPreamble(roster) : desktopPreamble(seat, roster), '');
   }
   parts.push(renderLines(messages.slice(cursor)));
+  const close = closeLine({ messages, seat, roster, budgetNotice });
+  if (close) parts.push('', close);
   if (notebookContext) parts.push('', notebookBlock(notebookContext));
   if (budgetNotice) parts.push('', `[System]: ${BUDGET_NOTICE}`);
   return parts.join('\n');
