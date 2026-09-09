@@ -12,6 +12,6 @@ const live = JSON.parse(fs.readFileSync(new URL('./fixtures/gemini-reply-as-butt
 
 test('Gemini live tree: a reply exposed as an AXButton value is a message item', () => {
   const items = itemTexts(findNode(live, gemini.conversation), gemini.messageItem);
-  assert.ok(items.some((t) => t.includes('wide awake')), `reply missing; items=${JSON.stringify(items.map((t) => t.slice(0, 40)))}`);
+  assert.ok(items.some((t) => t.includes('This is a redacted reply.')), `reply missing; items=${JSON.stringify(items.map((t) => t.slice(0, 40)))}`);
   assert.ok(items.every((t) => !t.includes('Show thinking')), 'thinking label must not be a message');
 });

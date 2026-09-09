@@ -1,12 +1,12 @@
-# Field notes — 2026-09-08 · Company_OS_X workspace
+# Field notes — 2026-09-08 · live workspace
 
 Observer: Claude Opus 5, separate interactive CLI session in the same workspace
-(`~/Projekts/Company_OS_X`), watching live. Ted drives `AgentsUniteD` in a second
+(`<workspace>`), watching live. Ted drives `AgentsUniteD` in a second
 terminal; seats are `@claude` (CLI, acceptEdits) and `@gemini` (Desktop).
 
 Environment: bridge pid 51876 (`node bin/unite-desktop.js`) started 14:14:48,
 parent shell pid 40582 (iTerm, since 13:20:54). Gemini.app pid 10763 since 10:51:59.
-Chat dir `~/Projekts/Company_OS_X/.unite/chats/main`.
+Chat dir `<workspace>/.unite/chats/<chat>/`.
 Times below are local (UTC-4); `transcript.jsonl` stores UTC.
 
 Companion to `docs/probe/findings.md` — that is the lab; this is the field.
@@ -26,7 +26,7 @@ three times in 11 minutes. `/last-error` would have printed `(no errors logged)`
   `src/main/relay.js:70` and `bin/unite-desktop.js:144`, and only when a round *throws*
 - The three "@gemini offline: …" events were handled degradations, not throws, so
   nothing reached either writer
-- Confirmed on disk: `.unite/chats/main/` contains only `state.json`,
+- Confirmed on disk: `<workspace>/.unite/chats/<chat>/` contains only `state.json`,
   `transcript.jsonl`, `transcript.md`. No `errors.log`.
 
 Fix direction: call `appendErrorLog` wherever the relay emits a `system` offline/degraded

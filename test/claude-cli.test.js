@@ -77,7 +77,7 @@ test('permissionMode override and --resume / --model', async () => {
 const INNOCENT_STREAM = [
   '{"type":"system","subtype":"init","session_id":"sess-ok"}',
   '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_9","name":"Bash","input":{"command":"notebooklm search"}}]}}',
-  '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_9","content":"Matched: 4efa5ab4 (FDE)\\nIf you need Ted to decide or grant a high-stakes permission, say so."}]}}',
+  '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_9","content":"Matched: 00000000-0000-4000-8000-000000000000 (Example notebook)\\nIf you need Ted to decide or grant a high-stakes permission, say so."}]}}',
   '{"type":"result","subtype":"success","is_error":false,"result":"Found it.","session_id":"sess-ok"}',
 ].join('\n') + '\n';
 
@@ -98,8 +98,8 @@ test('a successful tool result is not a denial just because its text says "permi
 // "permission" — is_error alone must be enough to catch it.
 const WORKDIR_DENIAL_STREAM = [
   '{"type":"system","subtype":"init","session_id":"sess-wd"}',
-  '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_3","name":"Bash","input":{"command":"ls /Users/teds/Projekts"}}]}}',
-  '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_3","is_error":true,"content":"ls in \'/Users/teds/Projekts\' was blocked. For security, Claude Code may only list files in the allowed working directories for this session."}]}}',
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_3","name":"Bash","input":{"command":"ls ~/Projekts"}}]}}',
+  '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_3","is_error":true,"content":"ls in \'~/Projekts\' was blocked. For security, Claude Code may only list files in the allowed working directories for this session."}]}}',
   '{"type":"result","subtype":"success","is_error":false,"result":"Blocked.","session_id":"sess-wd"}',
 ].join('\n') + '\n';
 

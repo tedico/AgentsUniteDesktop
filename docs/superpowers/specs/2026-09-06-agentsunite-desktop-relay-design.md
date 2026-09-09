@@ -2,7 +2,7 @@
 
 Spec destination: `AgentsUniteDesktop/docs/superpowers/specs/2026-09-06-agentsunite-desktop-relay-design.md`
 Status: design approved section by section in the unite room by Ted on 2026-09-06. No open markers.
-Reference engine: `/Users/teds/Projekts/AgentsUnite` (`lib/engine.js`, `lib/transcript.js`, `lib/mentions.js`, `lib/deltas.js`, `lib/config.js`).
+Reference engine: `~/Projekts/AgentsUnite` (`lib/engine.js`, `lib/transcript.js`, `lib/mentions.js`, `lib/deltas.js`, `lib/config.js`).
 
 ## Goal
 

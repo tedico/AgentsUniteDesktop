@@ -1,7 +1,7 @@
-# Field notes — 2026-09-08 evening · Company_OS_X workspace
+# Field notes — 2026-09-08 evening · live workspace
 
 Observer: Claude Fable 5.1, separate interactive CLI session in the same workspace
-(`~/Projekts/Company_OS_X`), watching `.unite/chats/main/{errors,traces}.log` live via
+(`<workspace>`), watching `<workspace>/.unite/chats/<chat>/{errors,traces}.log` live via
 `tail -F` (per-poll `t=` rows filtered out of the notification stream, read from the
 file on each event). Ted drives `AgentsUniteD` in a second terminal; seats are
 `@claude` (CLI, acceptEdits) and `@gemini` (Desktop) on a shared NotebookLM notebook.
