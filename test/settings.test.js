@@ -25,11 +25,11 @@ test('saveSettings round-trips and normalizes', () => {
 
 test('readRoomConfig: CLI defaults when no config file; file values otherwise', () => {
   const root = tmp();
-  assert.deepEqual(readRoomConfig(root), { turnCap: 8, timeoutMs: 300000, notebookId: null });
+  assert.deepEqual(readRoomConfig(root), { turnCap: 4, timeoutMs: 300000, notebookId: null });
   fs.mkdirSync(path.join(root, '.unite'), { recursive: true });
   fs.writeFileSync(path.join(root, '.unite', 'config.json'), JSON.stringify({ turnCap: 3, timeoutMs: 60000, roster: ['claude'] }));
   assert.deepEqual(readRoomConfig(root), { turnCap: 3, timeoutMs: 60000, notebookId: null });
-  assert.deepEqual(readRoomConfig(null), { turnCap: 8, timeoutMs: 300000, notebookId: null });
+  assert.deepEqual(readRoomConfig(null), { turnCap: 4, timeoutMs: 300000, notebookId: null });
 });
 
 test('writeRoomConfig: merges only turnCap/timeoutMs, keeps other CLI keys, validates ranges', () => {

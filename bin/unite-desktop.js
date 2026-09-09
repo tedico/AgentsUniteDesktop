@@ -2,7 +2,7 @@
 import readline from 'node:readline';
 import process from 'node:process';
 import { parseArgv, parsePlanCommand, PLAN_USAGE } from '../vendor/agentsunite/lib/cli.js';
-import { loadConfig } from '../vendor/agentsunite/lib/config.js';
+import { desktopConfig } from '../src/cli/desktop-config.js';
 import { getStorageRoot, ensureChat, listChats, latestChat, syncTranscriptMarkdown } from '../src/cli/desktop-paths.js';
 import { runRound, RoundControl, endPlanning } from '../vendor/agentsunite/lib/engine.js';
 import { makeUi } from '../src/cli/ui.js';
@@ -32,7 +32,7 @@ if (isGlobal) {
 }
 
 const root = process.cwd();
-const config = { ...loadConfig(root), roster: ['claude', 'gemini'] };
+const config = desktopConfig(root);
 const ui = makeUi();
 const helper = makeAxHelper();
 const adapters = {
