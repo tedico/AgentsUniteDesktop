@@ -84,7 +84,9 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
           const via = thinkGrew ? 'thinking' : sig.via;
           lastThink = think;
           if (phase) progress(phase, { chars: Math.max(0, text.length - baseChars) });
-          if (busy) stable = 0;
+          // An empty read is not evidence the conversation stopped changing —
+          // it is evidence we cannot see it. Never let it count toward stability.
+          if (busy || !text) stable = 0;
           else stable = text === last ? stable + 1 : 0;
           last = text;
           trace.push({
