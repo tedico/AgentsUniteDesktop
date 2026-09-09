@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeDesktopAdapter, sessionRefFor } from '../src/adapters/desktop-adapter.js';
+import { makeDesktopAdapter, sessionRefFor, UNREADABLE_IDLE_POLLS } from '../src/adapters/desktop-adapter.js';
 import { ERRORS } from '../src/shared/errors.js';
 import { makeFakeHelper } from './helpers/fake-helper.js';
 import { makeTree } from './helpers/trees.js';
@@ -263,7 +263,9 @@ test('press failure is described', async () => {
 // while the mic button showed idle. `stable` compared "" to "" twice and the
 // adapter declared the round finished. It cannot tell "the conversation stopped
 // changing" from "I cannot see the conversation" — only the latter is true here.
-test('an unreadable (empty) conversation never counts toward stability', async () => {
+// Waiting does not change that state (live 2026-09-09 01:29: 300 s, 59 polls),
+// so it must fail fast with a name that points at the selector file.
+test('an unreadable (empty) conversation fails fast as conversationUnreadable', async () => {
   const node = (role, extra = {}, children = []) => ({
     role, subrole: null, name: null, title: null, description: null, help: null, value: null, enabled: true, path: [], children, ...extra,
   });
@@ -293,7 +295,9 @@ test('an unreadable (empty) conversation never counts toward stability', async (
   const helper = makeFakeHelper({ trees: [withText, withText, hollow] });
   const res = await adapter(helper, { selectors: sel }).a.invoke({ prompt: PROMPT });
   assert.equal(res.ok, false);
-  assert.equal(res.errorCode, 'replyTimedOut', `got ${res.errorCode}: ${res.error}`);
+  assert.equal(res.errorCode, 'conversationUnreadable', `got ${res.errorCode}: ${res.error}`);
+  assert.equal(res.error, ERRORS.conversationUnreadable('TestApp', SEL.file, { thinkingChars: 0 }));
+  assert.ok(res.diagnostics.polls <= UNREADABLE_IDLE_POLLS + 1, `took ${res.diagnostics.polls} polls — not fast`);
 });
 
 // Observed live 2026-09-09: poll interval grew 4.7s → 15.8s across four rounds

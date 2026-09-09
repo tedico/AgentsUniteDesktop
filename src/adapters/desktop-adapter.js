@@ -8,6 +8,11 @@ export const sessionRefFor = (seat) => `desktop:${seat}`;
 // Identical non-busy polls required before settle() returns. Owner, 2026-09-08:
 // 3 polls ≈ 3s at pollMs=1000. `stable` counts matches after the first sighting.
 export const STABLE_IDLE_POLLS = 3;
+// Consecutive idle-but-empty polls before settle() gives up: the app is not
+// generating and we still cannot read a word of its chat. That is a selector
+// mismatch, not a slow reply — waiting the full timeout (300 s live,
+// 2026-09-09 01:29) does not change it.
+export const UNREADABLE_IDLE_POLLS = 5;
 const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const phaseLabel = (phase) => (phase == null ? 'pre-wait' : phase === 'streaming' ? 'awaiting-reply' : phase);
@@ -67,6 +72,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       const settle = async (phase, baseChars) => {
         let last = null;
         let stable = 0;
+        let unreadable = 0;
         let lastThink = -1;
         const label = phaseLabel(phase);
         for (;;) {
@@ -92,6 +98,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
           const changed = text !== last;
           if (busy || !text) stable = 0;
           else stable = text === last ? stable + 1 : 0;
+          unreadable = !busy && !text ? unreadable + 1 : 0;
           last = text;
           trace.push({
             elapsedMs: now() - t0,
@@ -107,6 +114,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
             // Text only where it changed; no `texts` means "same as the row above".
             texts: changed ? current : undefined,
           });
+          if (unreadable >= UNREADABLE_IDLE_POLLS) return { unreadable: true, think };
           if (busy) continue;
           if (stable >= STABLE_IDLE_POLLS - 1) return { ok: true, tree: s.tree, items: current };
         }
@@ -125,6 +133,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
         const idle = await settle(null, 0);
         if (idle.aborted) return fail('skipped');
         if (idle.timedOut) return fail(ERRORS.appBusy(appName));
+        if (idle.unreadable) return fail(ERRORS.conversationUnreadable(appName, selectors.file, { thinkingChars: idle.think }), { code: 'conversationUnreadable', thinkingChars: idle.think });
         if (idle.error) return fail(idle.error);
         tree = idle.tree;
       }
@@ -166,6 +175,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       const finished = await settle('streaming', before.join('\n\n').length);
       if (finished.aborted) return fail('skipped');
       if (finished.timedOut) return fail(ERRORS.replyTimedOut(appName, Math.round(timeoutMs / 1000)));
+      if (finished.unreadable) return fail(ERRORS.conversationUnreadable(appName, selectors.file, { thinkingChars: finished.think }), { code: 'conversationUnreadable', thinkingChars: finished.think });
       if (finished.error) return fail(finished.error);
 
       // 4. Read.

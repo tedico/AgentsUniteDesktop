@@ -40,6 +40,7 @@ export function isNotebooklmAuthError(text) {
 
 export function inferErrorCode(error) {
   const s = String(error ?? '');
+  if (/none of its conversation text could be read/i.test(s)) return 'conversationUnreadable';
   if (/thinking text is still on screen/i.test(s)) return 'stillGenerating';
   if (/no new text appeared/i.test(s)) return 'emptyReply';
   if (/no readable window/i.test(s)) return 'noWindow';

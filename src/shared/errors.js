@@ -31,6 +31,10 @@ export const ERRORS = {
     const obs = observed.messagesAfter != null ? ` Observed: messages ${observed.messagesBefore}→${observed.messagesAfter}.` : '';
     return `${app} finished but no new text appeared in the chat.${obs} Check the ${app} window, then send again.`;
   },
+  conversationUnreadable: (app, file, observed = {}) => {
+    const think = observed.thinkingChars != null ? ` (thinkingChars=${observed.thinkingChars})` : '';
+    return `${app} is idle but none of its conversation text could be read${think}. Its message layout probably changed — update ${file}, or check the ${app} window.`;
+  },
   axTooSlow: (app) => `Reading the ${app} window took too long. Bring the chat into view and try again.`,
   accessibilityPending: () =>
     `Waiting for Accessibility. Open System Settings → Privacy & Security → Accessibility, turn on AgentsUnite Desktop, then quit and reopen this app.`,
