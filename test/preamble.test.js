@@ -74,3 +74,27 @@ test('budget notice is appended as a [System] line', () => {
   const p = buildDesktopPrompt({ messages: MSGS, cursor: 2, seat: 'gemini', roster: ROSTER, firstTurn: false, budgetNotice: true });
   assert.equal(p, `[Ted]: @gemini your turn\n\n[System]: ${BUDGET_NOTICE}`);
 });
+
+test('yield line no longer forbids @mentioning a seat', () => {
+  for (const p of [desktopPreamble('gemini', ROSTER), claudeCliPreamble(ROSTER)]) {
+    assert.match(p, /Ted, we need you to make a decision on <topic>\./);
+    assert.doesNotMatch(p, /do not @mention/i);
+  }
+});
+
+test('both preambles carry the turn-taking rule and the honesty rule', () => {
+  for (const p of [desktopPreamble('gemini', ROSTER), claudeCliPreamble(ROSTER)]) {
+    assert.match(p, /Turn-taking: when your reply makes a claim or proposal worth a second opinion, end it by @mentioning the other seat/);
+    assert.match(p, /@mention them back so they can close/);
+    assert.match(p, /When you close an exchange, @mention no one\./);
+    assert.match(p, /One exchange per message from Ted: hand off, get the response, close\./);
+    assert.match(p, /You see only the text pasted in this chat\./);
+    assert.match(p, /Do not say you have read a file, spec, or notebook source/);
+  }
+});
+
+test('plain-numbers rule is in the desktop (Gemini) preamble only', () => {
+  assert.match(desktopPreamble('gemini', ROSTER), /never in math formatting/);
+  assert.match(desktopPreamble('gemini', ROSTER), /The relay cannot read rendered math; it arrives as blanks\./);
+  assert.doesNotMatch(claudeCliPreamble(ROSTER), /math formatting/);
+});
