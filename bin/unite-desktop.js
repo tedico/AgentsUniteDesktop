@@ -14,6 +14,7 @@ import geminiSelectors from '../src/selectors/gemini.js';
 import { buildHybridPrompt } from '../src/main/preamble.js';
 import { checkHybrid } from '../src/main/preflight.js';
 import { withErrorLogs } from '../src/main/log-adapter.js';
+import { withHandBacks } from '../src/main/handback-adapter.js';
 import { groundRound } from '../src/main/notebook.js';
 import { notebooklmCliAdapter } from '../src/adapters/notebooklm-cli.js';
 
@@ -128,7 +129,7 @@ if (cmd === 'new') {
 }
 const dir = ensureChat(storageRoot, chatName, { isGlobal, cwd: root });
 syncTranscriptMarkdown(dir, chatName);
-const loggedAdapters = withErrorLogs(adapters, dir);
+const loggedAdapters = withErrorLogs(withHandBacks(adapters, dir, config), dir);
 
 const bannerPrefix = isGlobal ? 'unite-desktop [GLOBAL] — ' : 'unite-desktop — ';
 const chatLocation = isGlobal ? ' (~/Documents/AgentsUnite/global)' : '';

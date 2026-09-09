@@ -3,13 +3,14 @@ import { readTranscript, appendRoundError } from '../../vendor/agentsunite/lib/t
 import { parsePlanCommand, PLAN_USAGE } from '../../vendor/agentsunite/lib/cli.js';
 import { buildHybridPrompt } from './preamble.js';
 import { withErrorLogs } from './log-adapter.js';
+import { withHandBacks } from './handback-adapter.js';
 
 // The traffic cop. Calls the same runRound the CLI calls; the only things it
 // adds are a `ui` that emits events instead of printing, per-seat skip, and
 // the /plan commands the CLI handles in bin/unite.js. Never calls
 // applyPolicyNotice: that would post the CLI's tool policy into the room.
 export function makeRelay({ dir, adapters, config, emit, now = () => Date.now(), groundNotebook } = {}) {
-  adapters = withErrorLogs(adapters, dir, now);
+  adapters = withErrorLogs(withHandBacks(adapters, dir, config), dir, now);
   let control = null;
   let activeSeat = null;
   const stamp = () => new Date(now()).toISOString();

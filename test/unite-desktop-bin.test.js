@@ -16,5 +16,6 @@ test('bin/unite-desktop.js exists, is ESM, and wires the hybrid seats', () => {
   assert.match(src, /syncTranscriptMarkdown/);
   assert.match(src, /desktopConfig\(root\)/);
   assert.doesNotMatch(src, /\.\.\.loadConfig\(root\)/);
+  assert.match(src, /withErrorLogs\(withHandBacks\(adapters, dir, config\), dir\)/);
 });
 

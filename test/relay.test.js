@@ -7,6 +7,7 @@ import { makeRelay } from '../src/main/relay.js';
 import { readTranscript, loadState } from '../vendor/agentsunite/lib/transcript.js';
 import { PLAN_USAGE } from '../vendor/agentsunite/lib/cli.js';
 import { ERRORS } from '../src/shared/errors.js';
+import { CLOSE_LINE } from '../src/main/preamble.js';
 
 const CONFIG = { roster: ['claude', 'gemini'], turnCap: 8, timeoutMs: 1000, binaries: {}, models: {}, planner: 'claude' };
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'unite-relay-'));
@@ -200,4 +201,22 @@ test('loadHistory emits the transcript', async () => {
   assert.equal(events[0].type, 'transcript:load');
   assert.equal(events[0].messages.length, 2);
   assert.equal(readTranscript(dir).length, 2);
+});
+
+test('hand-off exchange: Claude asks Gemini, Gemini answers without a mention, Claude closes', async () => {
+  const claude = fakeAdapter('claude', [
+    { ok: true, replyText: 'Mostly sound. @gemini does the prior hold?', sessionRef: 'desktop:claude' },
+    { ok: true, replyText: 'Closing: it holds; Ted, nothing to decide.', sessionRef: 'desktop:claude' },
+  ]);
+  const gemini = fakeAdapter('gemini', [{ ok: true, replyText: 'It holds, Claude.', sessionRef: 'desktop:gemini' }]);
+  const { dir, events, relay } = setup({ claude, gemini }, { ...CONFIG, turnCap: 4 });
+  await relay.submit('@claude is the math sound?');
+  const seats = readTranscript(dir).filter((m) => ['claude', 'gemini'].includes(m.from));
+  assert.deepEqual(seats.map((m) => m.from), ['claude', 'gemini', 'claude']);
+  assert.equal(seats[1].text, 'It holds, Claude.\n\n— over to @claude');
+  assert.deepEqual(seats[1].mentions, ['claude']);
+  assert.equal(claude.calls.length, 2);
+  assert.match(claude.calls[1].prompt, /Close the exchange for Ted/);
+  assert.ok(claude.calls[1].prompt.endsWith(CLOSE_LINE));
+  assert.deepEqual(events.filter((e) => e.type === 'turn:start').map((e) => [e.seat, e.pos]), [['claude', 1], ['gemini', 2], ['claude', 3]]);
 });
