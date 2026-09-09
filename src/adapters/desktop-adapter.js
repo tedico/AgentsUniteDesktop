@@ -11,6 +11,7 @@ export const STABLE_IDLE_POLLS = 3;
 const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const phaseLabel = (phase) => (phase == null ? 'pre-wait' : phase === 'streaming' ? 'awaiting-reply' : phase);
+const roleOf = (m) => (Array.isArray(m) ? m.map((s) => s.role).join('|') : m?.role) ?? 'unknown';
 
 // One adapter for both desktop apps; the differences live in `selectors`.
 // Same contract as the CLI adapters: invoke({ prompt, sessionRef, signal,
@@ -182,7 +183,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
           code: think > 0 ? 'stillGenerating' : 'emptyReply',
           ...observed,
           candidateLengths: after.map((t) => t.length),
-          selector: selectors.messageItem?.role ?? 'unknown',
+          selector: roleOf(selectors.messageItem),
         });
       }
       progress('done', { chars: replyText.length });

@@ -48,12 +48,14 @@ export function findNode(root, sel) {
 
 // Matches in document order. A matched node's subtree is skipped so nested
 // bubbles (a quoted message inside a message) are not counted twice.
+// `sel` may be one selector or a list; a node matches if any selector does.
 export function findAll(root, sel) {
+  const sels = Array.isArray(sel) ? sel : [sel];
   const out = [];
   const stack = root ? [root] : [];
   while (stack.length > 0) {
     const node = stack.shift();
-    if (matches(node, sel)) { out.push(node); continue; }
+    if (sels.some((s) => matches(node, s))) { out.push(node); continue; }
     stack.unshift(...(node.children ?? []));
   }
   return out;
@@ -87,9 +89,12 @@ export function thinkingChars(root, thinkingSel) {
 export function itemTexts(container, itemSel) {
   if (!container) return [];
   const items = itemSel ? findAll(container, itemSel) : [];
-  if (items.length === 0) {
+  const texts = items.map(collectText).filter(Boolean);
+  // Fall back to the whole container when the selector matched nothing
+  // readable — a match on an empty node must not hide text the selector missed.
+  if (texts.length === 0) {
     const all = collectText(container);
     return all ? [all] : [];
   }
-  return items.map(collectText).filter(Boolean);
+  return texts;
 }
