@@ -10,10 +10,10 @@
 - [ ] Phase 7 — Seat context: one-off notebook review upload + cleanup; seats address each other directly; seats never claim to have read what was not pasted
 
 ## Current phase
-Phase 5 complete — verified live 2026-09-08 21:45–23:32: ten consecutive Gemini rounds delivered replies (before the fix: 1 of 5); the `@claude` seat produced no false denials and committed to the workspace under a narrow git allowlist. Suite 156/156 on `feat/relay-failure-diagnostics` @ 79693a6 (local only; origin has `main`). Field notes: `docs/field-notes/2026-09-08-evening-relay-hardening.md`.
+Phase 7a complete on `feat/seat-exchange` (awaiting Ted's review and merge into `feat/relay-failure-diagnostics`): seats converse in a short bounded exchange — addressed seat answers and may hand off, peer responds once, addressed seat closes; cap 4; `@all` stops after both. Spec `docs/superpowers/specs/2026-09-09-seat-exchange-design.md`, plan `docs/superpowers/plans/2026-09-09-seat-exchange.md`. Not yet validated live.
 
 ## Next
-Brainstorm Phase 6 with Ted under the spec protocol (markers stay open until he resolves them): probe the chrome node paths each poll instead of walking the tree; read fewer attributes per node while polling; snapshot only the conversation scroll area (`[0,0,0,0,4]` in the live tree, composer/mic/send at `[0,0,0,0,{1,2,3}]`). Decide before code: index paths go stale on re-render; thinking-panel growth spawns nodes a probe cannot see; cadence of full walks as a fallback. Cost data is in the field notes (F6).
+Ted: review `feat/seat-exchange`, fast-forward it into `feat/relay-failure-diagnostics`, `/quit`, relaunch `AgentsUniteD`, **start a new chat** (the preamble is delivered on a session's first turn only), then run the three live checks from the spec §6 with the monitor armed: a substantive `@claude` question → three turns; a factual `@gemini` question → one; `@all` → two. Then Phase 6 (poll cost) brainstorm.
 
 ## Human
 - Decide `WebSearch` / `WebFetch` for the `@claude` seat — recommend `WebSearch` only, or neither; when denied it retried search four times in one round
