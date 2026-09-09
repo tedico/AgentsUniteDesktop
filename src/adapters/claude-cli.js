@@ -40,7 +40,10 @@ export function claudeCliAdapter({
           for (const b of evt.message?.content ?? []) {
             if (b.type !== 'tool_result') continue;
             const text = typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '');
-            if (b.is_error || /denied|permission/i.test(text)) {
+            // is_error is the harness's own denial signal. Matching "denied"/
+            // "permission" in CONTENT flagged successful reads whose text merely
+            // used the word, leaking it to errors.log and the transcript.
+            if (b.is_error) {
               denials.push({ tool: toolNames.get(b.tool_use_id) ?? b.tool_use_id ?? null, reason: text.slice(0, 400) });
             }
           }
