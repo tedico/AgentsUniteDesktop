@@ -11,6 +11,7 @@ export function makeFakeHelper({
   directSetSticks = true,
   onSnapshot = null,
   staleComposerPathAfterWrite = false,
+  truncated = false,
 } = {}) {
   const calls = [];
   let i = 0;
@@ -29,7 +30,7 @@ export function makeFakeHelper({
       if (snapshotError) return { ok: false, ...snapshotError };
       const tree = trees[Math.min(i, trees.length - 1)];
       i++;
-      return { ok: true, tree, truncated: false };
+      return { ok: true, tree, truncated };
     },
     async getValue(b, path) {
       calls.push(['getValue', path]);

@@ -3,7 +3,9 @@ import path from 'node:path';
 import { appendErrorLog, appendMessage } from '../../vendor/agentsunite/lib/transcript.js';
 import { formatDiagnostic, formatDenials, formatTraceRow, harnessDenialLine, inferErrorCode } from '../shared/diagnostics.js';
 
-// ~10 five-minute rounds at 1 Hz. Chat dirs already self-ignore.
+// Rows carry conversation text only where it changed, so a round costs about
+// one conversation-length per distinct state it passed through. Chat dirs
+// already self-ignore.
 export const TRACE_LOG_MAX_BYTES = 256 * 1024;
 
 export function appendTraceLog(dir, seat, text, { maxBytes = TRACE_LOG_MAX_BYTES, now = () => new Date() } = {}) {
@@ -14,16 +16,14 @@ export function appendTraceLog(dir, seat, text, { maxBytes = TRACE_LOG_MAX_BYTES
 
 export function rotateTraceLog(file, maxBytes) {
   if (!fs.existsSync(file)) return;
-  let raw = fs.readFileSync(file, 'utf8');
+  const raw = fs.readFileSync(file, 'utf8');
   if (Buffer.byteLength(raw) <= maxBytes) return;
   const blocks = raw.split(/^--- /m).filter(Boolean).map((b) => `--- ${b}`);
   while (blocks.length > 1 && Buffer.byteLength(blocks.join('')) > maxBytes) blocks.shift();
-  raw = blocks.join('');
-  if (Buffer.byteLength(raw) > maxBytes) {
-    const buf = Buffer.from(raw);
-    raw = buf.subarray(buf.length - maxBytes).toString();
-  }
-  fs.writeFileSync(file, raw);
+  // The cap is enforced between blocks, never inside one: a single oversized
+  // round is kept whole. Chopping bytes off its front removed the header that
+  // names the seat and verdict — the round you most need to read.
+  fs.writeFileSync(file, blocks.join(''));
 }
 
 // Wraps a seat adapter so catalog failures (and harness denials) reach

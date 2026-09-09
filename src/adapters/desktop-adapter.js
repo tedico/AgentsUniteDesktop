@@ -73,7 +73,9 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
           if (now() >= deadline) return { timedOut: true };
           await sleep(pollMs);
           if (signal?.aborted) return { aborted: true };
+          const tSnap = now();
           const s = await snapshot();
+          const snapMs = now() - tSnap;
           if (!s.ok) return { error: s.error };
           const current = items(s.tree);
           const text = current.join('\n\n');
@@ -86,6 +88,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
           if (phase) progress(phase, { chars: Math.max(0, text.length - baseChars) });
           // An empty read is not evidence the conversation stopped changing —
           // it is evidence we cannot see it. Never let it count toward stability.
+          const changed = text !== last;
           if (busy || !text) stable = 0;
           else stable = text === last ? stable + 1 : 0;
           last = text;
@@ -98,7 +101,10 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
             think,
             stable,
             phase: label,
-            texts: current,
+            snapMs,
+            truncated: s.truncated === true,
+            // Text only where it changed; no `texts` means "same as the row above".
+            texts: changed ? current : undefined,
           });
           if (busy) continue;
           if (stable >= STABLE_IDLE_POLLS - 1) return { ok: true, tree: s.tree, items: current };

@@ -28,8 +28,10 @@ export function harnessDenialLine(denials) {
 }
 
 export function formatTraceRow(row) {
+  const snap = row.snapMs != null ? ` snap=${row.snapMs}` : '';
+  const trunc = row.truncated != null ? ` trunc=${row.truncated}` : '';
   const texts = Array.isArray(row.texts) ? ` texts=${JSON.stringify(row.texts)}` : '';
-  return `t=${row.elapsedMs} busy=${row.busy} via=${row.via} items=${row.items} chars=${row.chars} think=${row.think} stable=${row.stable} phase=${row.phase}${texts}`;
+  return `t=${row.elapsedMs} busy=${row.busy} via=${row.via} items=${row.items} chars=${row.chars} think=${row.think} stable=${row.stable} phase=${row.phase}${snap}${trunc}${texts}`;
 }
 
 export function isNotebooklmAuthError(text) {

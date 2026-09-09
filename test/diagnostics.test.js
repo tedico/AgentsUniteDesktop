@@ -42,3 +42,12 @@ test('formatDenials and harnessDenialLine name the harness, not macOS', () => {
   assert.match(line, /Claude Code harness denied/);
   assert.doesNotMatch(line, /System Settings/);
 });
+
+test('formatTraceRow emits snapshot cost and truncation when present', () => {
+  const line = formatTraceRow({
+    elapsedMs: 2000, busy: false, via: 'idle', items: 2, chars: 20, think: 0, stable: 1, phase: 'awaiting-reply',
+    snapMs: 3500, truncated: true,
+  });
+  assert.match(line, /snap=3500/);
+  assert.match(line, /trunc=true/);
+});

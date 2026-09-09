@@ -145,8 +145,9 @@ test('finished but nothing new → emptyReply', async () => {
   }
   assert.ok(polls.every((row) => row.busy === true || row.busy === false));
   assert.ok(polls.every((row) => ['stop', 'send', 'idle', 'none', 'thinking'].includes(row.via)));
-  assert.ok(polls.every((row) => Array.isArray(row.texts)));
-  assert.ok(polls.some((row) => row.texts.includes(PROMPT)));
+  // Text rides on the rows where it changed; unchanged polls omit it.
+  assert.ok(polls.some((row) => Array.isArray(row.texts)));
+  assert.ok(polls.some((row) => row.texts?.includes(PROMPT)));
   assert.match(res.stderr, /old q/);
 });
 
@@ -293,4 +294,33 @@ test('an unreadable (empty) conversation never counts toward stability', async (
   const res = await adapter(helper, { selectors: sel }).a.invoke({ prompt: PROMPT });
   assert.equal(res.ok, false);
   assert.equal(res.errorCode, 'replyTimedOut', `got ${res.errorCode}: ${res.error}`);
+});
+
+// Observed live 2026-09-09: poll interval grew 4.7s → 15.8s across four rounds
+// while pollMs stayed 1000. Nothing recorded where the time went, and ax.jxa's
+// `truncated` flag was returned on every snapshot and read by no one.
+test('trace rows record snapshot cost and the truncation flag', async () => {
+  const clock = makeClock();
+  const helper = makeFakeHelper({ trees: [idle, idle, streaming, done], truncated: true, onSnapshot: () => clock.advance(3500) });
+  // 3.5s per snapshot on the fake clock; give the round room to finish.
+  const res = await adapter(helper, { now: clock.now, sleep: clock.sleep, timeoutMs: 60000 }).a.invoke({ prompt: PROMPT });
+  assert.equal(res.ok, true, res.error);
+  assert.ok(res.diagnostics.trace.length >= 2);
+  assert.ok(res.diagnostics.trace.every((row) => row.snapMs === 3500), JSON.stringify(res.diagnostics.trace.map((r) => r.snapMs)));
+  assert.ok(res.diagnostics.trace.every((row) => row.truncated === true));
+});
+
+// One live round wrote 104 KB to traces.log against a 256 KB cap because every
+// row repeated the full conversation text. Text belongs on the row where it changed.
+test('trace rows carry texts only when the conversation text changed since the previous poll', async () => {
+  const same = makeTree({ messages: ['old q', 'old a', PROMPT] });
+  const later = makeTree({ messages: ['old q', 'old a', PROMPT, 'Hello back!'] });
+  const helper = makeFakeHelper({ trees: [idle, idle, same, same, later] });
+  const res = await adapter(helper).a.invoke({ prompt: PROMPT });
+  assert.equal(res.ok, true, res.error);
+  const texts = res.diagnostics.trace.map((row) => row.texts);
+  assert.ok(Array.isArray(texts[0]), 'first poll carries texts');
+  assert.equal(texts[1], undefined, 'unchanged poll omits texts');
+  assert.ok(texts.some((t) => t?.includes('Hello back!')), 'the poll where the reply appeared carries texts');
+  assert.equal(texts.at(-1), undefined, 'trailing stability-confirmation polls omit texts');
 });

@@ -82,3 +82,17 @@ test('appendTraceLog drops the oldest blocks once the file exceeds the cap', () 
   assert.match(log, /THIRD_BLOCK/);
   assert.ok(TRACE_LOG_MAX_BYTES >= 256 * 1024);
 });
+
+// A five-minute failing round can exceed the cap on its own. The old tail-chop
+// kept the last N bytes and lost the header that names the seat and verdict —
+// the one round you most need to read arrived decapitated.
+test('a single block larger than the cap is kept whole, header intact', () => {
+  const dir = tmp();
+  const cap = 200;
+  const block = 'seat=gemini\ncode=replyTimedOut\n' + 't=1 busy=true via=none\n'.repeat(40);
+  assert.ok(Buffer.byteLength(block) > cap);
+  appendTraceLog(dir, 'gemini', block, { maxBytes: cap, now: () => new Date('2026-09-09T00:00:00.000Z') });
+  const log = fs.readFileSync(path.join(dir, 'traces.log'), 'utf8');
+  assert.match(log, /^--- 2026-09-09T00:00:00\.000Z gemini\nseat=gemini\ncode=replyTimedOut\n/, 'header must survive');
+  assert.equal((log.match(/t=1 busy=true/g) ?? []).length, 40, 'rows must survive');
+});
