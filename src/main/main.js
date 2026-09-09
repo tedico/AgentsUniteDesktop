@@ -10,6 +10,8 @@ import geminiSelectors from '../selectors/gemini.js';
 import { makeRelay } from './relay.js';
 import { tickPreflight } from './preflight.js';
 import { loadSettings, saveSettings, readRoomConfig, writeRoomConfig } from './settings.js';
+import { groundRound } from './notebook.js';
+import { notebooklmCliAdapter } from '../adapters/notebooklm-cli.js';
 import { loadConfig } from '../../vendor/agentsunite/lib/config.js';
 import { ensureChat } from '../../vendor/agentsunite/lib/paths.js';
 
@@ -53,12 +55,23 @@ async function chooseRoot() {
 // desktop seats, adapters, relay. Called at start and after settings change.
 function openRoom() {
   const dir = ensureChat(settings.root, settings.chat);
-  const config = { ...loadConfig(settings.root), roster: SEATS };
+  const room = readRoomConfig(settings.root);
+  const config = { ...loadConfig(settings.root), roster: SEATS, notebookId: room.notebookId };
   const adapters = {
     claude: claudeDesktopAdapter({ helper, timeoutMs: config.timeoutMs }),
     gemini: geminiDesktopAdapter({ helper, timeoutMs: config.timeoutMs }),
   };
-  relay = makeRelay({ dir, adapters, config, emit });
+  const groundNotebook = config.notebookId
+    ? (opts) => groundRound({
+      ...opts,
+      ask: (args) => notebooklmCliAdapter({
+        notebookId: config.notebookId,
+        allowNew: config.notebookNew === true,
+        timeoutMs: 120000,
+      }).invoke(args),
+    })
+    : undefined;
+  relay = makeRelay({ dir, adapters, config, emit, groundNotebook });
   announceRoom();
 }
 
@@ -102,7 +115,7 @@ ipcMain.handle(CH.PICK_ROOT, () => chooseRoot());
 ipcMain.handle(CH.SET_SETTINGS, (_e, next = {}) => {
   if (relay?.busy) return { ...settings, ...readRoomConfig(settings.root), error: 'A turn is running — change settings after it finishes.' };
   settings = saveSettings(app.getPath('userData'), { ...settings, ...pick(next, ['root', 'chat']) });
-  writeRoomConfig(settings.root, pick(next, ['turnCap', 'timeoutMs']));
+  writeRoomConfig(settings.root, pick(next, ['turnCap', 'timeoutMs', 'notebookId']));
   openRoom();
   return { ...settings, ...readRoomConfig(settings.root) };
 });

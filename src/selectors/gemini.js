@@ -16,7 +16,15 @@ export default {
   idleButton: { role: 'AXButton', helpIncludes: 'microphone' },
   busyWhenSendAbsent: true,
   conversation: { role: 'AXWindow' },
-  // Answers are AXStaticText description "text". Thinking panels are
-  // AXTextArea "text entry area" plus a "Show thinking" label.
-  messageItem: { role: 'AXStaticText', descriptionEquals: 'text', nameExcludes: 'Show thinking' },
+  // Answers are AXStaticText description "text" — or, seen live 2026-09-08,
+  // an AXButton (description "button") carrying the whole reply in its value
+  // (test/fixtures/gemini-reply-as-button.json). Thinking panels are AXTextArea
+  // "text entry area" plus a "Show thinking" label.
+  messageItem: [
+    { role: 'AXStaticText', descriptionEquals: 'text', nameExcludes: 'Show thinking' },
+    { role: 'AXButton', descriptionEquals: 'button', hasValue: true },
+  ],
+  thinkingItem: { role: 'AXTextArea', descriptionEquals: 'text entry area' },
+  // Gemini publishes zero windows until activate; AX snapshots measured 14–27s.
+  activateWaitMs: 30000,
 };

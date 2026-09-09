@@ -22,6 +22,6 @@ kill "$PID" 2>/dev/null; wait "$PID" 2>/dev/null || true
 echo "wrote $OUT"
 
 # Also copy to Desktop for easy access
-DESKTOP_OUT="/Users/teds/Desktop/AgentsUniteDesktop-Instructions.pdf"
+DESKTOP_OUT="$HOME/Desktop/AgentsUniteDesktop-Instructions.pdf"
 cp "$OUT" "$DESKTOP_OUT"
 echo "copied to $DESKTOP_OUT"

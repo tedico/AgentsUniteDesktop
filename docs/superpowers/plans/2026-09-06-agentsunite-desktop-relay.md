@@ -1957,7 +1957,7 @@ the probe fixtures. Phase 2 complete. Next: upstream buildPrompt hook (Task 7)."
 
 ### Task 7: Upstream PR — pluggable `buildPrompt` in AgentsUnite; re-pin
 
-**Repo:** `/Users/teds/Projekts/AgentsUnite` (GitHub `tedico/AgentsUnite`). This is the one upstream change the spec allows. Ted merges the PR; never push to `main`.
+**Repo:** `~/Projekts/AgentsUnite` (GitHub `tedico/AgentsUnite`). This is the one upstream change the spec allows. Ted merges the PR; never push to `main`.
 
 **Files (upstream):**
 - Modify: `lib/engine.js:2` (import) and `lib/engine.js:35` (`runRound` signature)
@@ -1972,7 +1972,7 @@ the probe fixtures. Phase 2 complete. Next: upstream buildPrompt hook (Task 7)."
 - [ ] **Step 1: Branch upstream and write the failing test**
 
 ```bash
-cd /Users/teds/Projekts/AgentsUnite && git checkout -b feat/pluggable-build-prompt
+cd ~/Projekts/AgentsUnite && git checkout -b feat/pluggable-build-prompt
 ```
 
 Append to `test/engine.test.js` (it already defines `tmpDir`, `fakeAdapter`, `quietUi`, `CONFIG`, `RoundControl`, `runRound`):
@@ -2016,7 +2016,7 @@ test('without buildPrompt the CLI preamble is still used', async () => {
 
 - [ ] **Step 2: Run to verify failure**
 
-Run: `cd /Users/teds/Projekts/AgentsUnite && node --test test/engine.test.js`
+Run: `cd ~/Projekts/AgentsUnite && node --test test/engine.test.js`
 Expected: the two new "caller-supplied" tests FAIL (prompt starts with `You are Claude…`, not `CUSTOM…`); the third passes.
 
 - [ ] **Step 3: Make the change in `lib/engine.js`**
@@ -2032,13 +2032,13 @@ export async function runRound({ humanText, dir, adapters, config, ui, control, 
 
 - [ ] **Step 4: Run the full upstream suite**
 
-Run: `cd /Users/teds/Projekts/AgentsUnite && npm test`
+Run: `cd ~/Projekts/AgentsUnite && npm test`
 Expected: all passing, including the three new tests.
 
 - [ ] **Step 5: Commit on the branch, push the branch, open the PR**
 
 ```bash
-cd /Users/teds/Projekts/AgentsUnite
+cd ~/Projekts/AgentsUnite
 git add lib/engine.js test/engine.test.js
 git commit -m "feat: runRound accepts an optional buildPrompt (defaults to the CLI's)
 
@@ -2052,7 +2052,7 @@ Log "merge PR feat/pluggable-build-prompt in AgentsUnite" under `## Human` in `S
 - [ ] **Step 6: Re-pin and re-vendor in this repo**
 
 ```bash
-cd /Users/teds/Projekts/AgentsUniteDesktop
+cd ~/Projekts/AgentsUniteDesktop
 NEW=$(git -C ../AgentsUnite rev-parse main)
 node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('engine.pin.json'));p.commit=process.argv[1];fs.writeFileSync('engine.pin.json',JSON.stringify(p,null,2)+'\n')" "$NEW"
 npm run vendor:engine
@@ -2941,7 +2941,7 @@ Create an empty `src/renderer/styles.css` and a `src/renderer/renderer.js` conta
 Run: `npm start`
 Expected, in order:
 1. The macOS Accessibility prompt appears (first launch of this Electron binary). Deny it for now — verifying the prompt is the point; Task 15 grants it to the packaged app.
-2. A folder picker: choose `/Users/teds/Projekts/AgentsUniteDesktop` (it already has `.unite/`).
+2. A folder picker: choose `~/Projekts/AgentsUniteDesktop` (it already has `.unite/`).
 3. The window opens. Open DevTools (View → Toggle Developer Tools): the console shows a `settings` event with `root`, `chat: 'main'`, `turnCap: 8`, `timeoutMs: 300000`, then `transcript:load` with the existing messages, then a `preflight` event every 2 s whose seat messages are the accessibility-denied text (expected while the grant is absent) or "chat open" if the terminal that launched `npm start` already holds the grant.
 4. Quit. `~/Library/Application Support/agentsunite-desktop/settings.json` exists with the chosen root.
 

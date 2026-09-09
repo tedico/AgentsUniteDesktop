@@ -1,10 +1,22 @@
-import { findNode, itemTexts } from '../ax/query.js';
+import { findNode, itemTexts, thinkingChars } from '../ax/query.js';
 import { extractReply } from './reply.js';
 import { stripCitations } from './citations.js';
 import { ERRORS, describeAxError } from '../shared/errors.js';
+import { formatDiagnostic, formatTraceRow, inferErrorCode } from '../shared/diagnostics.js';
 
 export const sessionRefFor = (seat) => `desktop:${seat}`;
+// Identical non-busy polls required before settle() returns. Owner, 2026-09-08:
+// 3 polls ≈ 3s at pollMs=1000. `stable` counts matches after the first sighting.
+export const STABLE_IDLE_POLLS = 3;
+// Consecutive idle-but-empty polls before settle() gives up: the app is not
+// generating and we still cannot read a word of its chat. That is a selector
+// mismatch, not a slow reply — waiting the full timeout (300 s live,
+// 2026-09-09 01:29) does not change it.
+export const UNREADABLE_IDLE_POLLS = 5;
 const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const phaseLabel = (phase) => (phase == null ? 'pre-wait' : phase === 'streaming' ? 'awaiting-reply' : phase);
+const roleOf = (m) => (Array.isArray(m) ? m.map((s) => s.role).join('|') : m?.role) ?? 'unknown';
 
 // One adapter for both desktop apps; the differences live in `selectors`.
 // Same contract as the CLI adapters: invoke({ prompt, sessionRef, signal,
@@ -17,12 +29,24 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
   return {
     seat,
     async invoke({ prompt, signal, onProgress }) {
-      const fail = (error) => ({ ok: false, error, sessionRef });
+      const t0 = now();
+      const trace = [];
+      const fail = (error, obs = {}) => {
+        const code = obs.code ?? inferErrorCode(error);
+        const extra = { promptChars: String(prompt ?? '').length, replyChars: 0, polls: trace.length, ...obs };
+        delete extra.code;
+        const diagnostics = { ...extra, trace };
+        const stderr = [
+          formatDiagnostic({ seat, code, elapsedMs: now() - t0, extra }),
+          ...trace.map(formatTraceRow),
+        ].join('\n');
+        return { ok: false, error, sessionRef, errorCode: code, stderr, diagnostics };
+      };
       const progress = (phase, extra = {}) => onProgress?.({ ts: now(), phase, ...extra });
       const deadline = now() + timeoutMs;
 
       const snapshot = async () => {
-        const s = await helper.snapshot(bundleId);
+        const s = await helper.snapshot(bundleId, { activateWaitMs: selectors.activateWaitMs ?? 300 });
         return s.ok ? s : { ok: false, error: describeAxError(s, appName) };
       };
       const items = (tree) => itemTexts(findNode(tree, selectors.conversation), selectors.messageItem);
@@ -32,33 +56,67 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       };
       // Claude: Stop visible. Gemini: Send hidden while generating, but Send
       // is also hidden when idle+empty (mic shows). Busy = no Stop/Send/mic.
-      const isBusy = (tree) => {
-        if (findNode(tree, selectors.stopButton)) return true;
-        if (!selectors.busyWhenSendAbsent) return false;
-        if (findNode(tree, selectors.sendButton)) return false;
-        if (selectors.idleButton && findNode(tree, selectors.idleButton)) return false;
-        return true;
+      const busySignal = (tree) => {
+        if (findNode(tree, selectors.stopButton)) return { busy: true, via: 'stop' };
+        if (!selectors.busyWhenSendAbsent) {
+          return { busy: false, via: findNode(tree, selectors.sendButton) ? 'send' : 'none' };
+        }
+        if (findNode(tree, selectors.sendButton)) return { busy: false, via: 'send' };
+        if (selectors.idleButton && findNode(tree, selectors.idleButton)) return { busy: false, via: 'idle' };
+        return { busy: true, via: 'none' };
       };
+      const isBusy = (tree) => busySignal(tree).busy;
 
-      // Poll until not busy and the conversation text is the same across two
-      // consecutive polls. Used both for "already generating" and the reply.
+      // Poll until not busy and the conversation text is unchanged across
+      // STABLE_IDLE_POLLS consecutive polls. Used for "already generating" and the reply.
       const settle = async (phase, baseChars) => {
         let last = null;
         let stable = 0;
+        let unreadable = 0;
+        let lastThink = -1;
+        const label = phaseLabel(phase);
         for (;;) {
           if (signal?.aborted) return { aborted: true };
           if (now() >= deadline) return { timedOut: true };
           await sleep(pollMs);
           if (signal?.aborted) return { aborted: true };
+          const tSnap = now();
           const s = await snapshot();
+          const snapMs = now() - tSnap;
           if (!s.ok) return { error: s.error };
           const current = items(s.tree);
           const text = current.join('\n\n');
+          const sig = busySignal(s.tree);
+          const think = thinkingChars(s.tree, selectors.thinkingItem);
+          const thinkGrew = lastThink >= 0 && think > lastThink;
+          const busy = sig.busy || thinkGrew;
+          const via = thinkGrew ? 'thinking' : sig.via;
+          lastThink = think;
           if (phase) progress(phase, { chars: Math.max(0, text.length - baseChars) });
-          if (isBusy(s.tree)) { stable = 0; last = text; continue; }
-          stable = text === last ? stable + 1 : 0;
+          // An empty read is not evidence the conversation stopped changing —
+          // it is evidence we cannot see it. Never let it count toward stability.
+          const changed = text !== last;
+          if (busy || !text) stable = 0;
+          else stable = text === last ? stable + 1 : 0;
+          unreadable = !busy && !text ? unreadable + 1 : 0;
           last = text;
-          if (stable >= 1) return { ok: true, tree: s.tree, items: current };
+          trace.push({
+            elapsedMs: now() - t0,
+            busy,
+            via,
+            items: current.length,
+            chars: text.length,
+            think,
+            stable,
+            phase: label,
+            snapMs,
+            truncated: s.truncated === true,
+            // Text only where it changed; no `texts` means "same as the row above".
+            texts: changed ? current : undefined,
+          });
+          if (unreadable >= UNREADABLE_IDLE_POLLS) return { unreadable: true, think };
+          if (busy) continue;
+          if (stable >= STABLE_IDLE_POLLS - 1) return { ok: true, tree: s.tree, items: current };
         }
       };
 
@@ -75,6 +133,7 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
         const idle = await settle(null, 0);
         if (idle.aborted) return fail('skipped');
         if (idle.timedOut) return fail(ERRORS.appBusy(appName));
+        if (idle.unreadable) return fail(ERRORS.conversationUnreadable(appName, selectors.file, { thinkingChars: idle.think }), { code: 'conversationUnreadable', thinkingChars: idle.think });
         if (idle.error) return fail(idle.error);
         tree = idle.tree;
       }
@@ -116,14 +175,39 @@ export function makeDesktopAdapter({ seat, selectors, helper, timeoutMs = 300000
       const finished = await settle('streaming', before.join('\n\n').length);
       if (finished.aborted) return fail('skipped');
       if (finished.timedOut) return fail(ERRORS.replyTimedOut(appName, Math.round(timeoutMs / 1000)));
+      if (finished.unreadable) return fail(ERRORS.conversationUnreadable(appName, selectors.file, { thinkingChars: finished.think }), { code: 'conversationUnreadable', thinkingChars: finished.think });
       if (finished.error) return fail(finished.error);
 
       // 4. Read.
       let replyText = extractReply({ before, after: finished.items, prompt });
       if (selectors.stripCitations) replyText = stripCitations(replyText);
-      if (!replyText.trim()) return fail(ERRORS.emptyReply(appName));
+      if (!replyText.trim()) {
+        const after = finished.items;
+        const think = thinkingChars(finished.tree, selectors.thinkingItem);
+        const observed = {
+          messagesBefore: before.length,
+          messagesAfter: after.length,
+          thinkingChars: think,
+        };
+        return fail(ERRORS.emptyReply(appName, observed), {
+          code: think > 0 ? 'stillGenerating' : 'emptyReply',
+          ...observed,
+          candidateLengths: after.map((t) => t.length),
+          selector: roleOf(selectors.messageItem),
+        });
+      }
       progress('done', { chars: replyText.length });
-      return { ok: true, replyText, sessionRef };
+      return {
+        ok: true,
+        replyText,
+        sessionRef,
+        diagnostics: {
+          promptChars: String(prompt ?? '').length,
+          replyChars: replyText.length,
+          polls: trace.length,
+          trace,
+        },
+      };
     },
   };
 }

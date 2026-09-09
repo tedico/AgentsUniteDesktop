@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import claude from '../src/selectors/claude.js';
 import gemini from '../src/selectors/gemini.js';
-import { findNode, itemTexts } from '../src/ax/query.js';
+import { findNode, itemTexts, thinkingChars } from '../src/ax/query.js';
 
 const fixture = (name) => JSON.parse(fs.readFileSync(`test/fixtures/${name}.json`, 'utf8')).tree;
 const REQUIRED = ['seat', 'appName', 'bundleId', 'file', 'manualAccessibility', 'stripCitations', 'composer', 'sendButton', 'stopButton', 'conversation', 'messageItem'];
@@ -46,6 +46,13 @@ for (const sel of [claude, gemini]) {
     assert.equal(findNode(doneTree, sel.stopButton), null);
   });
 }
+
+test('gemini thinkingItem totals thinking-panel characters on the streaming fixture', () => {
+  const tree = fixture('gemini-streaming');
+  assert.ok(gemini.thinkingItem, 'gemini selectors must name thinking panels');
+  const n = thinkingChars(tree, gemini.thinkingItem);
+  assert.ok(n > 0, `expected non-zero thinking chars, got ${n}`);
+});
 
 test('gemini messageItem is answer static text, not thinking textareas', () => {
   const done = itemTexts(findNode(fixture('gemini-done'), gemini.conversation), gemini.messageItem);

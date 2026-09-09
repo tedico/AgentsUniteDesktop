@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { findNode } from '../ax/query.js';
 import { ERRORS, describeAxError } from '../shared/errors.js';
+import { isNotebooklmAuthError } from '../shared/diagnostics.js';
 
 const execFileP = promisify(execFile);
 
@@ -26,7 +27,7 @@ export async function checkSeat({ helper, selectors }) {
   if (selectors.manualAccessibility) await helper.enableManualAccessibility(bundleId);
   const w = await helper.windows(bundleId);
   if (!w.ok) return { ...base, message: describeAxError(w, appName) };
-  if (w.count === 0) return { ...base, message: ERRORS.noWindow(appName) };
+  if (w.count === 0) return { ...base, message: ERRORS.noWindow(appName, w) };
   if (w.minimized >= w.count) return { ...base, message: ERRORS.minimized(appName) };
   const snap = await helper.snapshot(bundleId);
   if (!snap.ok) return { ...base, message: describeAxError(snap, appName) };
@@ -60,8 +61,29 @@ export async function checkClaudeCli({ which = defaultWhich, binary = 'claude' }
   return { seat: 'claude', appName: 'Claude', ready: true, message: `Claude CLI: ${resolved}` };
 }
 
-export async function checkHybrid({ helper, geminiSelectors, which, binary } = {}) {
+export async function checkNotebooklm({
+  which = defaultWhich,
+  binary = 'notebooklm',
+  notebookId,
+  run,
+} = {}) {
+  const base = { seat: 'notebook', appName: 'NotebookLM', ready: false };
+  if (!notebookId) return { ...base, ready: true, message: 'NotebookLM: not bound' };
+  const resolved = await which(binary);
+  if (!resolved) return { ...base, message: ERRORS.notebooklmNotOnPath() };
+  if (run) {
+    const r = await run({ cmd: binary, args: ['source', 'list', '-n', notebookId], timeoutMs: 30000 });
+    const text = `${r.stderr ?? ''}\n${r.stdout ?? ''}`;
+    if (r.spawnError) return { ...base, message: ERRORS.notebooklmNotOnPath() };
+    if (isNotebooklmAuthError(text)) return { ...base, message: ERRORS.notebooklmLogin() };
+  }
+  return { ...base, ready: true, message: `NotebookLM: ${resolved}` };
+}
+
+export async function checkHybrid({ helper, geminiSelectors, which, binary, notebookId, notebookRun } = {}) {
   const claude = await checkClaudeCli({ which, binary });
   const gemini = await checkSeat({ helper, selectors: geminiSelectors });
-  return { seats: [claude, gemini], ready: claude.ready && gemini.ready };
+  const seats = [claude, gemini];
+  if (notebookId) seats.push(await checkNotebooklm({ which, notebookId, run: notebookRun }));
+  return { seats, ready: claude.ready && gemini.ready };
 }

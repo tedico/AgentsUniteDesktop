@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { matches, findNode, findAll, walk, collectText, itemTexts } from '../src/ax/query.js';
+import { matches, findNode, findAll, walk, collectText, itemTexts, thinkingChars } from '../src/ax/query.js';
 
 const n = (role, extra = {}, children = []) => ({
   role, subrole: null, name: null, title: null, description: null, help: null, value: null, enabled: true, path: [], children, ...extra,
@@ -75,6 +75,20 @@ test('collectText: values and names in order, one per line, blanks skipped', () 
 test('itemTexts: one string per bubble when the item selector matches', () => {
   const conv = findNode(TREE, { descriptionIncludes: 'conversation' });
   assert.deepEqual(itemTexts(conv, { role: 'AXGroup', descriptionIncludes: 'message' }), ['hi there', 'Hello!\nconsole.log(1)']);
+});
+
+test('thinkingChars: character total of thinking panels; 0 when selector missing', () => {
+  const tree = n('AXApplication', {}, [
+    n('AXWindow', {}, [
+      n('AXTextArea', { description: 'text entry area', value: 'Refining the Format' }),
+      n('AXTextArea', { description: 'text entry area', value: 'Perfecting' }),
+      n('AXTextArea', { description: 'Ask Gemini', value: 'composer' }),
+    ]),
+  ]);
+  const sel = { role: 'AXTextArea', descriptionEquals: 'text entry area' };
+  assert.equal(thinkingChars(tree, sel), 'Refining the Format'.length + 'Perfecting'.length);
+  assert.equal(thinkingChars(tree, null), 0);
+  assert.equal(thinkingChars(null, sel), 0);
 });
 
 test('itemTexts: whole container as one item when no selector or no match; [] for empty', () => {

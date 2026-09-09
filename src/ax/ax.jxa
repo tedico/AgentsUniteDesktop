@@ -21,7 +21,7 @@ function dispatch(cmd) {
   switch (cmd.op) {
     case 'running': return { ok: true, running: procsFor(cmd.bundleId).length > 0 };
     case 'manualA11y': return manualA11y(procFor(cmd.bundleId));
-    case 'windows': return windows(procFor(cmd.bundleId));
+    case 'windows': return windows(procFor(cmd.bundleId), cmd);
     case 'snapshot': return snapshot(procFor(cmd.bundleId), cmd);
     case 'getValue': return { ok: true, value: str(elementAt(procFor(cmd.bundleId), cmd.path).value()) };
     case 'setValue': return setValue(procFor(cmd.bundleId), cmd.path, envText());
@@ -63,29 +63,42 @@ function manualA11y(proc) {
   catch (e) { return { ok: true, applied: false, error: String(e) }; }
 }
 
-function ensureWindows(proc) {
+function ensureWindows(proc, cmd) {
+  var waitMs = (cmd && cmd.activateWaitMs != null) ? cmd.activateWaitMs : 300;
+  var pollMs = (cmd && cmd.activatePollMs != null) ? cmd.activatePollMs : 200;
   var wins = proc.windows();
-  if (wins.length === 0) {
-    try {
-      Application(proc.bundleIdentifier()).activate();
-      $.NSThread.sleepForTimeInterval(0.3);
-      wins = proc.windows();
-    } catch (e) {}
+  var activate = { attempted: false, succeeded: false, error: null };
+  if (wins.length > 0) return { wins: wins, activate: activate };
+  activate.attempted = true;
+  try {
+    Application(proc.bundleIdentifier()).activate();
+  } catch (e) {
+    activate.error = String(e);
+    return { wins: wins, activate: activate };
   }
-  return wins;
+  var deadline = Date.now() + waitMs;
+  while (Date.now() < deadline) {
+    $.NSThread.sleepForTimeInterval(pollMs / 1000);
+    try { wins = proc.windows(); } catch (e) { activate.error = String(e); break; }
+    if (wins.length > 0) { activate.succeeded = true; break; }
+  }
+  return { wins: wins, activate: activate };
 }
 
-function windows(proc) {
-  var wins = ensureWindows(proc);
+function windows(proc, cmd) {
+  var ensured = ensureWindows(proc, cmd);
+  var wins = ensured.wins;
   var minimized = 0;
+  var frontmost = false;
+  try { frontmost = proc.frontmost() === true; } catch (e) {}
   for (var i = 0; i < wins.length; i++) {
     try { if (wins[i].attributes.byName('AXMinimized').value() === true) minimized++; } catch (e) {}
   }
-  return { ok: true, count: wins.length, minimized: minimized };
+  return { ok: true, count: wins.length, minimized: minimized, frontmost: frontmost, activate: ensured.activate };
 }
 
-function elementAt(proc, path) {
-  var wins = ensureWindows(proc);
+function elementAt(proc, path, cmd) {
+  var wins = ensureWindows(proc, cmd).wins;
   if (wins.length === 0) throw tagged('noWindow', 'no accessible window');
   var el = wins[path[0]];
   for (var i = 1; i < path.length; i++) el = el.uiElements[path[i]];
@@ -96,7 +109,7 @@ function snapshot(proc, cmd) {
   var budget = { left: cmd.maxNodes };
   var path = cmd.path || [];
   if (path.length === 0) {
-    var wins = ensureWindows(proc);
+    var wins = ensureWindows(proc, cmd).wins;
     if (wins.length === 0) throw tagged('noWindow', 'no accessible window');
     var roots = [];
     for (var w = 0; w < wins.length && budget.left > 0; w++) {
@@ -105,7 +118,7 @@ function snapshot(proc, cmd) {
     }
     return { ok: true, truncated: budget.left <= 0, tree: { role: 'AXApplication', subrole: null, name: null, title: null, description: null, help: null, value: null, enabled: true, path: [], children: roots } };
   }
-  var el = elementAt(proc, path);
+  var el = elementAt(proc, path, cmd);
   return { ok: true, truncated: budget.left <= 0, tree: describe(el, path, 0, cmd.maxDepth, budget) };
 }
 

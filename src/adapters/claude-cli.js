@@ -22,6 +22,8 @@ export function claudeCliAdapter({
 
       const track = makeTracker(onProgress);
       let result = null;
+      const toolNames = new Map();
+      const denials = [];
       const lines = makeLineSplitter((line) => {
         let evt;
         try { evt = JSON.parse(line); } catch { return; }
@@ -29,10 +31,24 @@ export function claudeCliAdapter({
         else if (evt.type === 'system' && evt.subtype === 'thinking_tokens') track.phase('thinking');
         else if (evt.type === 'assistant') {
           const tools = (evt.message?.content ?? []).filter((b) => b.type === 'tool_use');
-          if (tools.length) for (const b of tools) track.tool(b.name);
+          if (tools.length) for (const b of tools) {
+            if (b.id) toolNames.set(b.id, b.name);
+            track.tool(b.name);
+          }
           else track.phase('thinking');
-        } else if (evt.type === 'user') track.phase('thinking');
-        else if (evt.type === 'result') { result = evt; track.phase('replying'); }
+        } else if (evt.type === 'user') {
+          for (const b of evt.message?.content ?? []) {
+            if (b.type !== 'tool_result') continue;
+            const text = typeof b.content === 'string' ? b.content : JSON.stringify(b.content ?? '');
+            // is_error is the harness's own denial signal. Matching "denied"/
+            // "permission" in CONTENT flagged successful reads whose text merely
+            // used the word, leaking it to errors.log and the transcript.
+            if (b.is_error) {
+              denials.push({ tool: toolNames.get(b.tool_use_id) ?? b.tool_use_id ?? null, reason: text.slice(0, 400) });
+            }
+          }
+          track.phase('thinking');
+        } else if (evt.type === 'result') { result = evt; track.phase('replying'); }
       });
       const onData = (chunk, stream) => {
         track.heartbeat();
@@ -56,8 +72,13 @@ export function claudeCliAdapter({
       if (!j || typeof j.result !== 'string') {
         return { ok: false, error: 'bad json from claude', stderr: `${r.stderr}\n${r.stdout.slice(0, 2000)}` };
       }
-      if (!j.result.trim()) return { ok: false, error: 'empty reply', stderr };
-      return { ok: true, replyText: j.result, sessionRef: j.session_id ?? sessionRef ?? null };
+      if (!j.result.trim()) return { ok: false, error: 'empty reply', stderr, ...(denials.length ? { denials } : {}) };
+      return {
+        ok: true,
+        replyText: j.result,
+        sessionRef: j.session_id ?? sessionRef ?? null,
+        ...(denials.length ? { denials } : {}),
+      };
     },
   };
 }

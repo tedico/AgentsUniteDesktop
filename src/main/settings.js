@@ -10,6 +10,10 @@ export const DEFAULTS = { root: null, chat: 'main' };
 const CHAT_NAME_RE = /^[A-Za-z0-9._-]+$/;
 const LIMITS = { turnCap: [1, 50], timeoutMs: [5000, 1800000] };
 
+// The desktop's own default. The vendored engine defaults to 8; a short
+// exchange (spec 2026-09-09) is three turns normal, four at most.
+export const DESKTOP_TURN_CAP = 4;
+
 export function loadSettings(userDataDir) {
   try {
     return normalize(JSON.parse(fs.readFileSync(path.join(userDataDir, 'settings.json'), 'utf8')));
@@ -39,15 +43,21 @@ function readConfigFile(root) {
 export function readRoomConfig(root) {
   const file = root ? readConfigFile(root) : {};
   return {
-    turnCap: inRange(file.turnCap, LIMITS.turnCap) ? file.turnCap : DEFAULT_CONFIG.turnCap,
+    turnCap: inRange(file.turnCap, LIMITS.turnCap) ? file.turnCap : DESKTOP_TURN_CAP,
     timeoutMs: inRange(file.timeoutMs, LIMITS.timeoutMs) ? file.timeoutMs : DEFAULT_CONFIG.timeoutMs,
+    notebookId: normalizeNotebookId(file.notebookId),
   };
 }
 
-export function writeRoomConfig(root, { turnCap, timeoutMs }) {
+export function writeRoomConfig(root, { turnCap, timeoutMs, notebookId } = {}) {
   const file = readConfigFile(root);
   if (inRange(turnCap, LIMITS.turnCap)) file.turnCap = turnCap;
   if (inRange(timeoutMs, LIMITS.timeoutMs)) file.timeoutMs = timeoutMs;
+  if (notebookId !== undefined) {
+    const id = normalizeNotebookId(notebookId);
+    if (id) file.notebookId = id;
+    else delete file.notebookId;
+  }
   fs.mkdirSync(path.dirname(configPath(root)), { recursive: true });
   fs.writeFileSync(configPath(root), JSON.stringify(file, null, 2) + '\n');
   return readRoomConfig(root);
@@ -55,4 +65,11 @@ export function writeRoomConfig(root, { turnCap, timeoutMs }) {
 
 function inRange(v, [lo, hi]) {
   return Number.isInteger(v) && v >= lo && v <= hi;
+}
+
+function normalizeNotebookId(v) {
+  if (typeof v !== 'string') return null;
+  const s = v.trim();
+  if (!s || s.length > 128 || /\s/.test(s)) return null;
+  return s;
 }
