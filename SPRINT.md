@@ -21,7 +21,7 @@ Ted: review `feat/seat-exchange`, fast-forward it into `feat/relay-failure-diagn
 - Decide `[NEEDS CLARIFICATION: B5-idle-trace]` — tracing between rounds (recommend no: one `osascript` spawn every 2 s, indefinitely)
 - Choose the fix for inline widgets arriving as U+FFFC (`￼`): (1) mark them `[inline element unreadable by relay]`, (2) preamble rule "numbers and formulas in plain text, never math formatting", (3) press Gemini's Copy button and read the clipboard — recommend 1+2 now, 3 inside Phase 6
 - Four markers for Phase 7's one-off review upload: which paths; replace-by-title vs versioned titles; app-triggered vs preamble-instructed; the honesty preamble line. Already decided 2026-09-08 23:27: the workspace file is the single source of truth, no mirroring to the notebook
-- Push `feat/relay-failure-diagnostics` and open the PR to `main` when ready (seven commits since a963599; never merged locally to `main` per the hook)
+- Merge PR #1 (`feat/seat-exchange` → `main`, 20 commits: relay hardening + seat exchange) — https://github.com/tedico/AgentsUniteDesktop/pull/1 — then `/quit`, relaunch `AgentsUniteD`, and **start a new chat** for the seats to receive the new preamble
 - Rebuild `dist/` (`npm run package`) only if the Electron GUI is used — it predates every fix
 
 ## Blockers
