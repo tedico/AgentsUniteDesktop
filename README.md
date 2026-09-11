@@ -1,10 +1,10 @@
 # 🤝 AgentsUnite Desktop
 
-**Autonomous Multi-Agent Terminal Runner pairing Claude Code CLI and Gemini Desktop.**
+**Autonomous Multi-Agent Terminal Runner pairing Claude Code CLI and the Antigravity CLI (Gemini), grounded on one NotebookLM notebook.**
 
 One terminal workspace. Two frontier AI engines working together in a shared room:
 - **✳️ Claude Code CLI**: Runs headlessly in your repo with full tool execution, bash, and filesystem editing (`--permission-mode acceptEdits`).
-- **✦ Gemini Desktop (`Gemini.app`)**: Driven via macOS Accessibility (AX/JXA), giving the relay full access to your private NotebookLM notebooks, rich context, and desktop intelligence without API token billing.
+- **✦ Gemini (Antigravity CLI, `agy`)**: Runs headlessly in plan mode on the top Gemini Pro model, with every round grounded on the NotebookLM notebook you bind. Gemini.app over macOS Accessibility remains an opt-in (`"geminiSeat": "desktop"`) and powers the Electron window.
 
 > **Companion Project:** See [AgentsUnite](https://github.com/tedico/AgentsUnite) for the pure headless CLI multi-agent group chat pairing human + Claude Code + Gemini (Antigravity) + Cursor.
 
@@ -15,12 +15,12 @@ One terminal workspace. Two frontier AI engines working together in a shared roo
 ### The Problem: The Copy-Paste Tax of Fragmented AI
 Developers today rely on multiple AI systems that excel at completely different tasks:
 1. **Claude Code CLI** excels at code synthesis, refactoring, bash execution, and automated testing inside a local workspace.
-2. **Gemini Desktop (`Gemini.app`)** holds deep research, multimodal documents, personal notes, and private NotebookLM source material that are unavailable or cost-prohibitive via standard API endpoints.
+2. **Gemini, through NotebookLM and the Antigravity CLI,** holds deep research, multimodal documents, personal notes, and private NotebookLM source material that are unavailable or cost-prohibitive via standard API endpoints.
 
 Previously, combining them meant **manual cut-and-paste ping-pong**: asking Gemini to analyze research in its desktop app, manually copying its output, pasting into Claude CLI, copying Claude's code questions back to Gemini, and arbitrating the discussion.
 
 ### How It Makes Life Easier for Humans & Agents
-- **Autonomous Relay with Zero Copy-Paste**: You ask `@gemini what does the architecture spec say about X? Hand off to @claude to scaffold it`. The relay queries Gemini Desktop over macOS Accessibility, captures the answer, and immediately passes it to Claude CLI in your terminal to implement.
+- **Autonomous Relay with Zero Copy-Paste**: You ask `@gemini what does the architecture spec say about X? Hand off to @claude to scaffold it`. The relay grounds the round on your notebook through the NotebookLM CLI, runs Gemini headlessly through the Antigravity CLI, captures the answer, and immediately passes it to Claude CLI in your terminal to implement.
 - **Division of Labor (The Triad)**:
   - 🧠 **Gemini (The Domain Scholar):** Interrogates private NotebookLM documents, research libraries, and specifications without token billing.
   - 🛠️ **Claude (The Software Builder):** Modifies project files, executes commands, and inspects git working trees with tools enabled.
@@ -127,7 +127,7 @@ Since 2026-09-10 the terminal runner drives `@gemini` through the Antigravity CL
   "models": { "gemini": "gemini-3.1-pro-high" }
 }
 ```
-- `geminiSeat`: `"agy"` (default) runs `agy` headlessly in plan mode, read-only, with no Accessibility permission. `"desktop"` drives Gemini.app over Accessibility as before. Any other value stops the runner with a message.
+- `geminiSeat`: `"agy"` (default) runs `agy` headlessly in plan mode, read-only, with no Accessibility permission. The seat runs in the room's directory (your project, or `~/Documents/AgentsUnite/global` in global mode) and plan mode lets it read files there on its own initiative; whatever it reads is sent to Gemini as context. `"desktop"` drives Gemini.app over Accessibility as before. Any other value stops the runner with a message.
 - `models.gemini`: pins the model. When absent, the runner asks `agy models` at launch and picks the highest-numbered Gemini Pro at high effort; if that list is unavailable it falls back to `gemini-3.1-pro-high`. The chosen model and its source are printed at startup; the banner and `/who` show the model.
 - A room that previously ran through Gemini.app is migrated on its next launch: the Gemini seat's session is reset once and the preamble plus full transcript are re-sent on its first turn. Starting a new chat avoids that replay.
 

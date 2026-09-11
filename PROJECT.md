@@ -33,8 +33,8 @@ Retiring Gemini.app from the terminal runner: `@gemini` runs the Antigravity CLI
 * **Active Design Spec:** [docs/superpowers/specs/2026-09-06-agentsunite-desktop-relay-design.md](docs/superpowers/specs/2026-09-06-agentsunite-desktop-relay-design.md)
 * **Reference Engine:** `/Users/teds/Projekts/AgentsUnite` (`lib/engine.js`, `lib/transcript.js`, `lib/mentions.js`, `lib/deltas.js`, `lib/config.js`)
 * **Workflow Spec:** [llm-agnostic-ai-dev-team-spec.md](llm-agnostic-ai-dev-team-spec.md)
-* **Known Constraints:** macOS only; both target desktop apps must be running and not in full-screen on separate Spaces.
+* **Known Constraints:** macOS only. The Electron window and the `desktop` seat need the target desktop apps running and not in full-screen on separate Spaces; the default `agy` seat needs only the Antigravity CLI on PATH, logged in.
 * **Architecture & Seat Notes:**
-  - In `AgentsUniteDesktop`, `@gemini` automates the consumer `Gemini.app` GUI via Apple Accessibility (`AXUIElement`), bridging an otherwise closed ecosystem (no CLI/API/daemon).
+  - In `AgentsUniteDesktop`'s terminal runner, `@gemini` runs the headless `agy` binary by default (`"geminiSeat": "agy"`); the Electron window and the `desktop` opt-in automate the consumer `Gemini.app` GUI via Apple Accessibility (`AXUIElement`), bridging an otherwise closed ecosystem (no CLI/API/daemon).
   - In `AgentsUnite` (CLI), `@gemini` drives the headless `agy` binary via terminal subprocess.
   - Lead planner can be changed per-session via `/plan @gemini` or set as default in `.unite/config.json` (`"planner": "gemini"`).

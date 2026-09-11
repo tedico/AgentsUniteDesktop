@@ -20,6 +20,8 @@ Ted merges `feat/agy-seat` into `feat/relay-failure-diagnostics` (fast-forward),
 - Bind a notebook for the Phase 8 live check: put `"notebookId": "<id>"` in the room's `.unite/config.json` (`notebooklm list` prints ids), then run the two rounds in Task 7 of the plan and fill in F3 of `docs/field-notes/2026-09-10-agy-seat.md`
 - Merge `feat/agy-seat` → `feat/relay-failure-diagnostics` (fast-forward), then push and open the PR to `main` when ready
 - Decide the next step after Phase 8: Phase 7 (seat exchange) or per-seat NotebookLM MCP tools
+- Accept or reject: `AgentsUniteD ls` now exits 1 in a room whose `.unite/config.json` has an invalid `geminiSeat`, because validation runs before the `ls` block (final review, minor 4); making `ls` config-independent is a two-line move
+- Update the Gemini.app prerequisite text in `docs/instructions/AgentsUniteDesktop-Instructions.html` and rebuild the PDF with `scripts/build-instructions.sh` (final review, minor 11)
 - Decide `WebSearch` / `WebFetch` for the `@claude` seat — recommend `WebSearch` only, or neither; when denied it retried search four times in one round
 - Ratify the trace contract change: rows carry message text only where it changed (was every row, your 2026-09-08 decision); revert is two lines in `desktop-adapter.js`
 - Decide `[NEEDS CLARIFICATION: B5-idle-trace]` — tracing between rounds (recommend no: one `osascript` spawn every 2 s, indefinitely)
