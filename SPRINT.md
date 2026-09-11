@@ -14,11 +14,11 @@
 Phase 8 complete on `feat/agy-seat` (Tasks 1–6 @ 48c0ba2, seven commits since 7ff5bf4) — suite 180/180; live 2026-09-11: fresh-room turn 10 s on `gemini-3.1-pro-high` resolved from `agy models`, migration guard verified on a copy of the `main` room; grounded rounds (F3) pending Ted. Field notes: `docs/field-notes/2026-09-10-agy-seat.md`. Phases 6 and 7 remain queued; 6 is now optional (`desktop` seat only). Phase 5 evidence stays in `docs/field-notes/2026-09-08-evening-relay-hardening.md`.
 
 ## Next
-Ted merges `feat/agy-seat` into `feat/relay-failure-diagnostics` (fast-forward), relaunches, runs the two grounded rounds (field note F3), and decides whether to start Phase 7 (seat exchange; its plan's one-line wiring adjustment is already recorded) or the per-seat NotebookLM MCP step (spec 2026-09-10 §10: reinstall `notebooklm-py` with the `mcp` extra, `agy mcp add`, probe plan-mode tool calls, guard delete tools). Phase 6 brainstorm notes (chrome node paths, fewer attributes per poll, scroll-area snapshots, stale index paths) are in the 2026-09-08 field notes (F6) if the `desktop` seat is ever the focus again.
+Ted reviews and merges PR #2 (`feat/agy-seat` → `feat/relay-failure-diagnostics`), relaunches, runs the two grounded rounds (field note F3), and decides whether to start Phase 7 (seat exchange; its plan's one-line wiring adjustment is already recorded) or the per-seat NotebookLM MCP step (spec 2026-09-10 §10: reinstall `notebooklm-py` with the `mcp` extra, `agy mcp add`, probe plan-mode tool calls, guard delete tools). Phase 6 brainstorm notes (chrome node paths, fewer attributes per poll, scroll-area snapshots, stale index paths) are in the 2026-09-08 field notes (F6) if the `desktop` seat is ever the focus again.
 
 ## Human
 - Bind a notebook for the Phase 8 live check: put `"notebookId": "<id>"` in the room's `.unite/config.json` (`notebooklm list` prints ids), then run the two rounds in Task 7 of the plan and fill in F3 of `docs/field-notes/2026-09-10-agy-seat.md`
-- Merge `feat/agy-seat` → `feat/relay-failure-diagnostics` (fast-forward), then push and open the PR to `main` when ready
+- Review and merge PR #2 (`feat/agy-seat` → `feat/relay-failure-diagnostics`, https://github.com/tedico/AgentsUniteDesktop/pull/2); both branches were pushed 2026-09-11. Then open the PR from `feat/relay-failure-diagnostics` to `main` when ready
 - Decide the next step after Phase 8: Phase 7 (seat exchange) or per-seat NotebookLM MCP tools
 - Accept or reject: `AgentsUniteD ls` now exits 1 in a room whose `.unite/config.json` has an invalid `geminiSeat`, because validation runs before the `ls` block (final review, minor 4); making `ls` config-independent is a two-line move
 - Update the Gemini.app prerequisite text in `docs/instructions/AgentsUniteDesktop-Instructions.html` and rebuild the PDF with `scripts/build-instructions.sh` (final review, minor 11)
@@ -27,7 +27,7 @@ Ted merges `feat/agy-seat` into `feat/relay-failure-diagnostics` (fast-forward),
 - Decide `[NEEDS CLARIFICATION: B5-idle-trace]` — tracing between rounds (recommend no: one `osascript` spawn every 2 s, indefinitely)
 - Choose the fix for inline widgets arriving as U+FFFC (`￼`): (1) mark them `[inline element unreadable by relay]`, (2) preamble rule "numbers and formulas in plain text, never math formatting", (3) press Gemini's Copy button and read the clipboard — recommend 1+2 now, 3 inside Phase 6
 - Four markers for Phase 7's one-off review upload: which paths; replace-by-title vs versioned titles; app-triggered vs preamble-instructed; the honesty preamble line. Already decided 2026-09-08 23:27: the workspace file is the single source of truth, no mirroring to the notebook
-- Push `feat/relay-failure-diagnostics` and open the PR to `main` when ready (seven commits since a963599; never merged locally to `main` per the hook)
+- `feat/relay-failure-diagnostics` is now on origin (pushed 2026-09-11 as the base for PR #2); open its PR to `main` when ready (never merged locally to `main` per the hook)
 - Rebuild `dist/` (`npm run package`) only if the Electron GUI is used — it predates every fix
 
 ## Blockers
