@@ -128,7 +128,7 @@ Since 2026-09-10 the terminal runner drives `@gemini` through the Antigravity CL
 }
 ```
 - `geminiSeat`: `"agy"` (default) runs `agy` headlessly in plan mode, read-only, with no Accessibility permission. `"desktop"` drives Gemini.app over Accessibility as before. Any other value stops the runner with a message.
-- `models.gemini`: pins the model. When absent, the runner asks `agy models` at launch and picks the highest-numbered Gemini Pro at high effort; if that list is unavailable it falls back to `gemini-3.1-pro-high`. The chosen model and its source are printed at startup and by `/who`.
+- `models.gemini`: pins the model. When absent, the runner asks `agy models` at launch and picks the highest-numbered Gemini Pro at high effort; if that list is unavailable it falls back to `gemini-3.1-pro-high`. The chosen model and its source are printed at startup; the banner and `/who` show the model.
 - A room that previously ran through Gemini.app is migrated on its next launch: the Gemini seat's session is reset once and the preamble plus full transcript are re-sent on its first turn. Starting a new chat avoids that replay.
 
 ### Architectural Nuance: Desktop App vs. CLI App
