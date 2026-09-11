@@ -7,6 +7,13 @@ test('bin/unite-desktop.js exists, is ESM, and wires the hybrid seats', () => {
   assert.match(src, /^#!/);
   assert.match(src, /claudeCliAdapter/);
   assert.match(src, /geminiDesktopAdapter/);
+  assert.match(src, /agyAdapter/);
+  assert.match(src, /geminiSeat/);
+  assert.match(src, /resolveGeminiModel/);
+  assert.match(src, /resetDesktopSession/);
+  assert.match(src, /geminiSeat must be "agy" or "desktop"/);
+  assert.match(src, /geminiBinary/);
+  assert.doesNotMatch(src, /Gemini\.app\.\.\./, 'startup lines are seat-neutral');
   assert.match(src, /acceptEdits/);
   assert.match(src, /buildHybridPrompt/);
   assert.match(src, /checkHybrid/);

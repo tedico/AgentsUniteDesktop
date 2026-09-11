@@ -9,6 +9,9 @@ import { makeUi } from '../src/cli/ui.js';
 import { readTranscript, lastError, appendRoundError, loadState, saveState } from '../vendor/agentsunite/lib/transcript.js';
 import { claudeCliAdapter } from '../src/adapters/claude-cli.js';
 import { geminiDesktopAdapter } from '../src/adapters/gemini-desktop.js';
+import { agyAdapter } from '../vendor/agentsunite/lib/adapters/agy.js';
+import { resolveGeminiModel } from '../src/main/gemini-model.js';
+import { resetDesktopSession } from '../src/cli/gemini-session-guard.js';
 import { makeAxHelper } from '../src/ax/helper.js';
 import geminiSelectors from '../src/selectors/gemini.js';
 import { buildHybridPrompt } from '../src/main/preamble.js';
@@ -33,8 +36,28 @@ if (isGlobal) {
 
 const root = process.cwd();
 const config = { ...loadConfig(root), roster: ['claude', 'gemini'] };
+// Ted, 2026-09-10: the Gemini seat is the headless Antigravity CLI by default;
+// Gemini.app stays as an explicit opt-in. Fail loud on anything else.
+const geminiSeat = config.geminiSeat ?? 'agy';
+if (geminiSeat !== 'agy' && geminiSeat !== 'desktop') {
+  console.error(`geminiSeat must be "agy" or "desktop" (got ${JSON.stringify(config.geminiSeat)})`);
+  process.exit(1);
+}
 const ui = makeUi();
-const helper = makeAxHelper();
+
+const { cmd, name } = parseArgv(argv);
+if (cmd === 'ls') {
+  for (const c of listChats(storageRoot)) console.log(c);
+  process.exit(0);
+}
+
+// The accessibility helper exists only for the desktop opt-in, so an agy room
+// never spawns osascript and never needs Accessibility permission.
+const geminiBinary = config.binaries?.gemini ?? 'agy';
+const helper = geminiSeat === 'desktop' ? makeAxHelper() : null;
+const geminiModel = geminiSeat === 'agy'
+  ? await resolveGeminiModel({ configured: config.models?.gemini, binary: geminiBinary })
+  : null;
 const adapters = {
   claude: claudeCliAdapter({
     binary: config.binaries?.claude ?? 'claude',
@@ -43,21 +66,18 @@ const adapters = {
     mcp: config.mcp,
     permissionMode: 'acceptEdits',
   }),
-  gemini: geminiDesktopAdapter({ helper, timeoutMs: config.timeoutMs }),
+  gemini: geminiSeat === 'agy'
+    ? agyAdapter({ binary: geminiBinary, model: geminiModel.model, timeoutMs: config.timeoutMs })
+    : geminiDesktopAdapter({ helper, timeoutMs: config.timeoutMs }),
 };
-
-const { cmd, name } = parseArgv(argv);
-if (cmd === 'ls') {
-  for (const c of listChats(storageRoot)) console.log(c);
-  process.exit(0);
-}
+const geminiLabel = geminiSeat === 'agy' ? `agy · plan · ${geminiModel.model}` : 'Desktop';
 
 const STARTUP_MESSAGES = [
-  '☕ Brewing digital coffee for @claude & poking Gemini.app...',
-  '⚡ Summoning the council (herding @claude & waking up Gemini.app)...',
-  '🧙‍♂️ Casting macOS accessibility spells on Gemini.app & @claude...',
-  '🤝 Negotiating peace between Claude CLI and Gemini Desktop...',
-  '📡 Aligning satellite dishes between terminal and Gemini.app...',
+  '☕ Brewing digital coffee for @claude & @gemini...',
+  '⚡ Summoning the council (herding @claude & waking up @gemini)...',
+  '🧙‍♂️ Casting relay spells on @gemini & @claude...',
+  '🤝 Negotiating peace between @claude and @gemini...',
+  '📡 Aligning satellite dishes between the seats...',
   '🦾 Assembling the hybrid alliance (untangling cables)...',
 ];
 
@@ -81,6 +101,8 @@ try {
   pre = await checkHybrid({
     helper,
     geminiSelectors,
+    geminiSeat,
+    geminiBinary,
     binary: config.binaries?.claude ?? 'claude',
     notebookId: config.notebookId ?? null,
   });
@@ -89,6 +111,10 @@ try {
   if (process.stdout.isTTY) process.stdout.write(`\r\x1b[2K✨ ${intro}\n\n`);
 }
 for (const s of pre.seats) console.log(`${s.ready ? 'ok' : '!!'}  ${s.message}`);
+if (geminiSeat === 'agy') {
+  const source = geminiModel.source === 'fallback' ? 'fallback — agy models unavailable' : geminiModel.source;
+  console.log(`@gemini model: ${geminiModel.model} (${source})`);
+}
 if (!pre.seats.find((s) => s.seat === 'claude')?.ready) process.exit(1);
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: ui.prompt() });
@@ -132,11 +158,18 @@ const loggedAdapters = withErrorLogs(adapters, dir);
 
 const bannerPrefix = isGlobal ? 'unite-desktop [GLOBAL] — ' : 'unite-desktop — ';
 const chatLocation = isGlobal ? ' (~/Documents/AgentsUnite/global)' : '';
-console.log(`${bannerPrefix}chat "${chatName}"${chatLocation} — @claude (CLI, tools on) · @gemini (Desktop)`);
+console.log(`${bannerPrefix}chat "${chatName}"${chatLocation} — @claude (CLI, tools on) · @gemini (${geminiLabel})`);
 console.log('mention someone to get a reply; /plan [@seat] <text> · /plan off · /who /last /last-error /quit\n');
 {
   const planner = loadState(dir, config.roster).planner;
   if (planner) ui.printSystem(`(planning mode is on — @${planner} drives; plain text goes to @${planner}; /plan off to end)`);
+}
+if (geminiSeat === 'agy') {
+  const state = loadState(dir, config.roster);
+  if (resetDesktopSession(state, 'gemini')) {
+    saveState(dir, state);
+    ui.printSystem('(@gemini switched to Antigravity — its session was reset; the preamble and the full transcript are re-sent on its next turn)');
+  }
 }
 
 async function startRound(extra) {
@@ -180,7 +213,7 @@ async function handleInput(line) {
   if (text === '/quit') { rl.close(); return; }
   if (text === '/who') {
     ui.printSystem('@claude → claude (acceptEdits)');
-    ui.printSystem('@gemini → Gemini.app');
+    ui.printSystem(geminiSeat === 'agy' ? `@gemini → agy (plan, ${geminiModel.model})` : '@gemini → Gemini.app');
     rl.prompt(); return;
   }
   if (text === '/last') {
