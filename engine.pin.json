@@ -10,6 +10,7 @@
     "lib/paths.js",
     "lib/cli.js",
     "lib/adapters/claude.js",
+    "lib/adapters/agy.js",
     "lib/ui.js"
   ]
 }

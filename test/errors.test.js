@@ -21,6 +21,8 @@ test('every failure message names the app and says what to do', () => {
   assert.match(ERRORS.accessibilityPending(), /Privacy & Security → Accessibility/);
   assert.match(ERRORS.accessibilityPending(), /quit and reopen/);
   assert.match(ERRORS.claudeNotOnPath(), /claude is not on PATH/);
+  assert.match(ERRORS.agyNotOnPath(), /agy is not on PATH/);
+  assert.match(ERRORS.agyNotOnPath(), /Antigravity CLI/);
   assert.match(ERRORS.notebooklmNotOnPath(), /notebooklm is not on PATH/);
   assert.match(ERRORS.notebooklmLogin(), /notebooklm login/);
   assert.doesNotMatch(ERRORS.notebooklmLogin(), /empty reply|no new text/i);

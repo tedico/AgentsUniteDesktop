@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkSeat, checkAll, tickPreflight, checkClaudeCli, checkHybrid, checkNotebooklm } from '../src/main/preflight.js';
+import { checkSeat, checkAll, tickPreflight, checkClaudeCli, checkAgyCli, checkHybrid, checkNotebooklm } from '../src/main/preflight.js';
 import { ERRORS } from '../src/shared/errors.js';
 import { makeFakeHelper } from './helpers/fake-helper.js';
 import { makeTree } from './helpers/trees.js';
@@ -72,14 +72,46 @@ test('checkClaudeCli: missing binary is not ready', async () => {
   assert.match(r.message, /claude is not on PATH/i);
 });
 
-test('checkHybrid is ready only when claude is on PATH and Gemini chat is open', async () => {
+test('checkHybrid with the desktop seat is ready only when claude is on PATH and Gemini chat is open', async () => {
   const helper = makeFakeHelper({ trees: [makeTree()] });
   const gemini = { ...SEL, seat: 'gemini', appName: 'Gemini' };
-  const bad = await checkHybrid({ helper, geminiSelectors: gemini, which: async () => null });
+  const bad = await checkHybrid({ helper, geminiSelectors: gemini, geminiSeat: 'desktop', which: async () => null });
   assert.equal(bad.ready, false);
   assert.deepEqual(bad.seats.map((s) => s.seat), ['claude', 'gemini']);
-  const good = await checkHybrid({ helper, geminiSelectors: gemini, which: async () => '/usr/local/bin/claude' });
+  const good = await checkHybrid({ helper, geminiSelectors: gemini, geminiSeat: 'desktop', which: async () => '/usr/local/bin/claude' });
   assert.equal(good.ready, true);
+  assert.ok(helper.ops().includes('snapshot'), 'desktop seat walks the accessibility tree');
+});
+
+test('checkAgyCli: found → ready with the path; missing → the not-on-PATH message', async () => {
+  const ok = await checkAgyCli({ which: async () => '/Users/teds/.local/bin/agy' });
+  assert.deepEqual(ok, { seat: 'gemini', appName: 'Antigravity', ready: true, message: 'Antigravity CLI: /Users/teds/.local/bin/agy' });
+  const missing = await checkAgyCli({ which: async () => null });
+  assert.deepEqual(missing, { seat: 'gemini', appName: 'Antigravity', ready: false, message: ERRORS.agyNotOnPath() });
+});
+
+test('checkHybrid with the agy seat resolves the binary and never touches the accessibility helper', async () => {
+  const throwing = () => { throw new Error('helper must not be called for the agy seat'); };
+  const helper = { isRunning: throwing, enableManualAccessibility: throwing, windows: throwing, snapshot: throwing };
+  const which = async (bin) => ({ claude: '/bin/claude', agy: '/bin/agy' })[bin] ?? null;
+  const r = await checkHybrid({ helper, geminiSelectors: null, geminiSeat: 'agy', which });
+  assert.equal(r.ready, true);
+  assert.deepEqual(r.seats.map((s) => [s.seat, s.ready]), [['claude', true], ['gemini', true]]);
+  assert.equal(r.seats[1].message, 'Antigravity CLI: /bin/agy');
+  const noAgy = await checkHybrid({ helper, geminiSelectors: null, geminiSeat: 'agy', which: async (bin) => (bin === 'claude' ? '/bin/claude' : null) });
+  assert.equal(noAgy.ready, false);
+  assert.equal(noAgy.seats[1].message, ERRORS.agyNotOnPath());
+});
+
+test('checkHybrid defaults to the agy seat and honours geminiBinary', async () => {
+  const throwing = () => { throw new Error('helper must not be called by default'); };
+  const helper = { isRunning: throwing, enableManualAccessibility: throwing, windows: throwing, snapshot: throwing };
+  const asked = [];
+  const which = async (bin) => { asked.push(bin); return `/opt/${bin}`; };
+  const r = await checkHybrid({ helper, geminiSelectors: null, which, geminiBinary: 'agy-nightly' });
+  assert.equal(r.ready, true);
+  assert.deepEqual(asked, ['claude', 'agy-nightly']);
+  assert.equal(r.seats[1].message, 'Antigravity CLI: /opt/agy-nightly');
 });
 
 test('checkNotebooklm: unbound is skipped; missing binary and auth lapse are named', async () => {

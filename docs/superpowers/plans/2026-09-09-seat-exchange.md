@@ -690,7 +690,7 @@ MSG
 - Modify: `test/settings.test.js` (lines 28 and 32: expected `turnCap: 8` → `4`)
 - Create: `src/cli/desktop-config.js`
 - Test: `test/desktop-config.test.js`
-- Modify: `bin/unite-desktop.js` (line 5 import, line 35)
+- Modify: `bin/unite-desktop.js` (line 5 import, line 38)
 - Modify: `test/unite-desktop-bin.test.js`
 
 **Interfaces:**
@@ -779,7 +779,7 @@ In `bin/unite-desktop.js`: replace line 5 `import { loadConfig } from '../vendor
 import { desktopConfig } from '../src/cli/desktop-config.js';
 ```
 
-and replace line 35 `const config = { ...loadConfig(root), roster: ['claude', 'gemini'] };` with
+and replace line 38 `const config = { ...loadConfig(root), roster: ['claude', 'gemini'] };` with
 
 ```js
 const config = desktopConfig(root);
@@ -814,7 +814,7 @@ MSG
 ### Task 6: Compose the wrapper in both runners
 
 **Files:**
-- Modify: `bin/unite-desktop.js` (line 16 import block, line 131)
+- Modify: `bin/unite-desktop.js` (line 19 import block, line 157)
 - Modify: `src/main/relay.js` (line 5 import, line 12)
 - Modify: `test/unite-desktop-bin.test.js`, `test/relay.test.js` (append one test)
 
@@ -858,17 +858,19 @@ Expected: the bin test fails on the `withHandBacks` regex; the new relay test fa
 
 - [ ] **Step 3: Write the implementation**
 
-`bin/unite-desktop.js`: after line 16 (`import { withErrorLogs } from '../src/main/log-adapter.js';`) add
+`bin/unite-desktop.js`: after line 19 (`import { withErrorLogs } from '../src/main/log-adapter.js';`) add
 
 ```js
 import { withHandBacks } from '../src/main/handback-adapter.js';
 ```
 
-and replace line 131 `const loggedAdapters = withErrorLogs(adapters, dir);` with
+and replace line 157 `const loggedAdapters = withErrorLogs(adapters, dir);` with
 
 ```js
 const loggedAdapters = withErrorLogs(withHandBacks(adapters, dir, config), dir);
 ```
+
+The seat factory above builds `adapters.gemini` from `geminiSeat`; `withHandBacks` wraps whichever adapter it produced, so no other change is needed.
 
 `src/main/relay.js`: after line 5 (`import { withErrorLogs } from './log-adapter.js';`) add
 

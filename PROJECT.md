@@ -1,19 +1,19 @@
 # Project Status & Roadmap: AgentsUnite Desktop
 
-**Last Updated:** 2026-09-06  
-**Current Milestone:** v0.1 Desktop Relay (Claude & Gemini Consumer Apps)  
-**Spec Status:** Approved by Ted (2026-09-06)
+**Last Updated:** 2026-09-10  
+**Current Milestone:** v0.2 Terminal Runner — Claude Code + Antigravity CLI on one notebook  
+**Spec Status:** Approved by Ted (2026-09-10)
 
 ---
 
 ## 🎯 Current Focus
-Building an Electron macOS desktop app that relays messages between the Claude desktop app and the Gemini desktop app via macOS accessibility APIs, using the existing AgentsUnite turn-taking engine.
+Retiring Gemini.app from the terminal runner: `@gemini` runs the Antigravity CLI (`agy`) headlessly by default on the top Gemini Pro model, grounded on the room's NotebookLM notebook, with Gemini.app kept as an opt-in for the Electron window and `"geminiSeat": "desktop"`.
 
-* **Active Spec:** [docs/superpowers/specs/2026-09-06-agentsunite-desktop-relay-design.md](docs/superpowers/specs/2026-09-06-agentsunite-desktop-relay-design.md)
-* **Active Plan:** [docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md](docs/superpowers/plans/2026-09-06-agentsunite-desktop-relay.md) — 15 tasks; five spec deviations approved by Ted 2026-09-06
-* **Assigned Controller:** Cursor (Task 1 onward, per the spec's coding ranking)
-* **Planned Execution:** Cursor (bulk implementation) / Gemini / Claude
-* **Current Status:** Task 14 complete (signed `.app` with vendored engine). Next: Task 15 (live smoke).
+* **Active Spec:** [docs/superpowers/specs/2026-09-10-agy-seat-design.md](docs/superpowers/specs/2026-09-10-agy-seat-design.md)
+* **Active Plan:** [docs/superpowers/plans/2026-09-10-agy-seat.md](docs/superpowers/plans/2026-09-10-agy-seat.md) — 7 tasks; two cosmetic spec deviations recorded in the plan header
+* **Assigned Controller:** Claude Code (conductor) with the Antigravity CLI as workhorse — Conductor + Workhorse pattern, spec §7
+* **Planned Execution:** Antigravity writes tests and code per task; Claude Code runs the suite, reviews, and commits
+* **Current Status:** see `SPRINT.md` `## Current phase`
 
 ---
 
@@ -33,8 +33,8 @@ Building an Electron macOS desktop app that relays messages between the Claude d
 * **Active Design Spec:** [docs/superpowers/specs/2026-09-06-agentsunite-desktop-relay-design.md](docs/superpowers/specs/2026-09-06-agentsunite-desktop-relay-design.md)
 * **Reference Engine:** `/Users/teds/Projekts/AgentsUnite` (`lib/engine.js`, `lib/transcript.js`, `lib/mentions.js`, `lib/deltas.js`, `lib/config.js`)
 * **Workflow Spec:** [llm-agnostic-ai-dev-team-spec.md](llm-agnostic-ai-dev-team-spec.md)
-* **Known Constraints:** macOS only; both target desktop apps must be running and not in full-screen on separate Spaces.
+* **Known Constraints:** macOS only. The Electron window and the `desktop` seat need the target desktop apps running and not in full-screen on separate Spaces; the default `agy` seat needs only the Antigravity CLI on PATH, logged in.
 * **Architecture & Seat Notes:**
-  - In `AgentsUniteDesktop`, `@gemini` automates the consumer `Gemini.app` GUI via Apple Accessibility (`AXUIElement`), bridging an otherwise closed ecosystem (no CLI/API/daemon).
+  - In `AgentsUniteDesktop`'s terminal runner, `@gemini` runs the headless `agy` binary by default (`"geminiSeat": "agy"`); the Electron window and the `desktop` opt-in automate the consumer `Gemini.app` GUI via Apple Accessibility (`AXUIElement`), bridging an otherwise closed ecosystem (no CLI/API/daemon).
   - In `AgentsUnite` (CLI), `@gemini` drives the headless `agy` binary via terminal subprocess.
   - Lead planner can be changed per-session via `/plan @gemini` or set as default in `.unite/config.json` (`"planner": "gemini"`).

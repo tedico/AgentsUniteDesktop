@@ -61,6 +61,12 @@ export async function checkClaudeCli({ which = defaultWhich, binary = 'claude' }
   return { seat: 'claude', appName: 'Claude', ready: true, message: `Claude CLI: ${resolved}` };
 }
 
+export async function checkAgyCli({ which = defaultWhich, binary = 'agy' } = {}) {
+  const resolved = await which(binary);
+  if (!resolved) return { seat: 'gemini', appName: 'Antigravity', ready: false, message: ERRORS.agyNotOnPath() };
+  return { seat: 'gemini', appName: 'Antigravity', ready: true, message: `Antigravity CLI: ${resolved}` };
+}
+
 export async function checkNotebooklm({
   which = defaultWhich,
   binary = 'notebooklm',
@@ -80,9 +86,17 @@ export async function checkNotebooklm({
   return { ...base, ready: true, message: `NotebookLM: ${resolved}` };
 }
 
-export async function checkHybrid({ helper, geminiSelectors, which, binary, notebookId, notebookRun } = {}) {
+// geminiSeat 'agy' (the default since 2026-09-10) resolves the Antigravity
+// binary and never touches the accessibility helper; 'desktop' walks
+// Gemini.app's tree as before.
+export async function checkHybrid({
+  helper, geminiSelectors, which, binary, notebookId, notebookRun,
+  geminiSeat = 'agy', geminiBinary = 'agy',
+} = {}) {
   const claude = await checkClaudeCli({ which, binary });
-  const gemini = await checkSeat({ helper, selectors: geminiSelectors });
+  const gemini = geminiSeat === 'desktop'
+    ? await checkSeat({ helper, selectors: geminiSelectors })
+    : await checkAgyCli({ which, binary: geminiBinary });
   const seats = [claude, gemini];
   if (notebookId) seats.push(await checkNotebooklm({ which, notebookId, run: notebookRun }));
   return { seats, ready: claude.ready && gemini.ready };
