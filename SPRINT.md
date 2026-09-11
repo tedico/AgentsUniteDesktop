@@ -11,13 +11,15 @@
 - [ ] Phase 8 — Antigravity CLI as the default `@gemini` seat in the terminal runner (spec `docs/superpowers/specs/2026-09-10-agy-seat-design.md`, plan `docs/superpowers/plans/2026-09-10-agy-seat.md`). Executes before Phases 6 and 7 per Ted 2026-09-10. Conductor: Claude Code; workhorse: `agy`.
 
 ## Current phase
-Phase 5 complete — verified live 2026-09-08 21:45–23:32: ten consecutive Gemini rounds delivered replies (before the fix: 1 of 5); the `@claude` seat produced no false denials and committed to the workspace under a narrow git allowlist. Suite 156/156 on `feat/relay-failure-diagnostics` @ 79693a6 (local only; origin has `main`). Field notes: `docs/field-notes/2026-09-08-evening-relay-hardening.md`.
+Phase 8 complete on `feat/agy-seat` (Tasks 1–6 @ 48c0ba2, seven commits since 7ff5bf4) — suite 180/180; live 2026-09-11: fresh-room turn 10 s on `gemini-3.1-pro-high` resolved from `agy models`, migration guard verified on a copy of the `main` room; grounded rounds (F3) pending Ted. Field notes: `docs/field-notes/2026-09-10-agy-seat.md`. Phases 6 and 7 remain queued; 6 is now optional (`desktop` seat only). Phase 5 evidence stays in `docs/field-notes/2026-09-08-evening-relay-hardening.md`.
 
 ## Next
-Brainstorm Phase 6 with Ted under the spec protocol (markers stay open until he resolves them): probe the chrome node paths each poll instead of walking the tree; read fewer attributes per node while polling; snapshot only the conversation scroll area (`[0,0,0,0,4]` in the live tree, composer/mic/send at `[0,0,0,0,{1,2,3}]`). Decide before code: index paths go stale on re-render; thinking-panel growth spawns nodes a probe cannot see; cadence of full walks as a fallback. Cost data is in the field notes (F6).
+Ted merges `feat/agy-seat` into `feat/relay-failure-diagnostics` (fast-forward), relaunches, runs the two grounded rounds (field note F3), and decides whether to start Phase 7 (seat exchange; its plan's one-line wiring adjustment is already recorded) or the per-seat NotebookLM MCP step (spec 2026-09-10 §10: reinstall `notebooklm-py` with the `mcp` extra, `agy mcp add`, probe plan-mode tool calls, guard delete tools). Phase 6 brainstorm notes (chrome node paths, fewer attributes per poll, scroll-area snapshots, stale index paths) are in the 2026-09-08 field notes (F6) if the `desktop` seat is ever the focus again.
 
 ## Human
-- Bind a notebook for the Phase 8 live check: put `"notebookId": "<id>"` in the room's `.unite/config.json` (`notebooklm list` prints ids), then run the two rounds in Task 7 of the plan
+- Bind a notebook for the Phase 8 live check: put `"notebookId": "<id>"` in the room's `.unite/config.json` (`notebooklm list` prints ids), then run the two rounds in Task 7 of the plan and fill in F3 of `docs/field-notes/2026-09-10-agy-seat.md`
+- Merge `feat/agy-seat` → `feat/relay-failure-diagnostics` (fast-forward), then push and open the PR to `main` when ready
+- Decide the next step after Phase 8: Phase 7 (seat exchange) or per-seat NotebookLM MCP tools
 - Decide `WebSearch` / `WebFetch` for the `@claude` seat — recommend `WebSearch` only, or neither; when denied it retried search four times in one round
 - Ratify the trace contract change: rows carry message text only where it changed (was every row, your 2026-09-08 decision); revert is two lines in `desktop-adapter.js`
 - Decide `[NEEDS CLARIFICATION: B5-idle-trace]` — tracing between rounds (recommend no: one `osascript` spawn every 2 s, indefinitely)
