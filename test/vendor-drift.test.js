@@ -28,6 +28,8 @@ test('vendored engine exports what the desktop app imports', async () => {
   assert.equal(typeof cli.parsePlanCommand, 'function');
   const claude = await import('../vendor/agentsunite/lib/adapters/claude.js');
   assert.equal(typeof claude.claudeAdapter, 'function');
+  const agy = await import('../vendor/agentsunite/lib/adapters/agy.js');
+  assert.equal(typeof agy.agyAdapter, 'function');
   const proc = await import('../vendor/agentsunite/lib/proc.js');
   assert.equal(typeof proc.runHeadless, 'function');
   const ui = await import('../vendor/agentsunite/lib/ui.js');
