@@ -35,11 +35,12 @@ Previously, combining them meant **manual cut-and-paste ping-pong**: asking Gemi
 ### 1. Prerequisites
 - macOS (tested on Sonoma & Sequoia).
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) (`npm i -g @anthropic-ai/claude-code`) on your `$PATH`.
-- [Gemini Desktop App](https://gemini.google.com/) installed and running.
+- Antigravity CLI (`agy`) on your `$PATH` and logged in — run `agy` once interactively to sign in.
+- Optional: [Gemini Desktop App](https://gemini.google.com/) installed and running, only for rooms that set `"geminiSeat": "desktop"`.
 - Node.js &ge; 20.
 
 ### 2. Permissions (One-Time Setup)
-Grant macOS Accessibility and Automation permissions to your terminal (Terminal, iTerm2, or Cursor):
+Needed only for the Electron window and for rooms that opt into `"geminiSeat": "desktop"`; a default `agy` room needs none of this. For those, grant macOS Accessibility and Automation permissions to your terminal (Terminal, iTerm2, or Cursor):
 1. **Accessibility**: `System Settings → Privacy & Security → Accessibility` → Toggle **ON** for your terminal app.
 2. **Automation**: `System Settings → Privacy & Security → Automation` → Allow your terminal to control **System Events**.
 
@@ -118,11 +119,24 @@ In both apps, the lead planner seat is fully configurable:
 - **On the fly (per session):** Type `/plan @gemini` or `/plan @gemini <topic>`. From that point forward, all unadorned plain-text inputs route directly to `@gemini`.
 - **Permanent default:** Add `"planner": "gemini"` to your project's `.unite/config.json`. Once configured, typing `/plan <topic>` will automatically designate Gemini as the lead driver.
 
+### Choosing the Gemini Seat (Terminal Runner)
+Since 2026-09-10 the terminal runner drives `@gemini` through the Antigravity CLI by default. Two optional keys in your project's `.unite/config.json`:
+```json
+{
+  "geminiSeat": "agy",
+  "models": { "gemini": "gemini-3.1-pro-high" }
+}
+```
+- `geminiSeat`: `"agy"` (default) runs `agy` headlessly in plan mode, read-only, with no Accessibility permission. `"desktop"` drives Gemini.app over Accessibility as before. Any other value stops the runner with a message.
+- `models.gemini`: pins the model. When absent, the runner asks `agy models` at launch and picks the highest-numbered Gemini Pro at high effort; if that list is unavailable it falls back to `gemini-3.1-pro-high`. The chosen model and its source are printed at startup and by `/who`.
+- A room that previously ran through Gemini.app is migrated on its next launch: the Gemini seat's session is reset once and the preamble plus full transcript are re-sent on its first turn. Starting a new chat avoids that replay.
+
 ### Architectural Nuance: Desktop App vs. CLI App
 | App | Seat Name | Under the Hood | Automation Surface |
 | :--- | :--- | :--- | :--- |
 | **`AgentsUnite` (CLI)** | `@gemini` | **Google Antigravity CLI (`agy`)** | Terminal subprocess (stdin/stdout) |
-| **`AgentsUniteDesktop`** | `@gemini` | **Gemini macOS Desktop App (`com.google.GeminiMacOS`)** | Apple Accessibility API (`AXUIElement`) |
+| **`AgentsUniteDesktop`** terminal runner, default | `@gemini` | **Google Antigravity CLI (`agy`)**, plan mode, top Pro model resolved at launch | Terminal subprocess (argv/stdout) |
+| **`AgentsUniteDesktop`** Electron window, and terminal runner with `"geminiSeat": "desktop"` | `@gemini` | **Gemini macOS Desktop App (`com.google.GeminiMacOS`)** | Apple Accessibility API (`AXUIElement`) |
 
 #### Why does `AgentsUniteDesktop` exist?
 Unlike developer-focused tools that expose command-line interfaces or JSON streaming (like Claude Code or Antigravity), Google's official Gemini macOS application is a closed system:
@@ -132,9 +146,12 @@ Unlike developer-focused tools that expose command-line interfaces or JSON strea
 
 The **only** boundary exposed for automation is the operating system's Accessibility tree (`AXUIElement`). `AgentsUniteDesktop` acts as an automated bridge—reading text blocks, typing into the composer, simulating clicks on the send button, and monitoring streaming output—allowing a closed desktop consumer app to collaborate directly with developer CLI agents like Claude.
 
+Since 2026-09-10 the terminal runner no longer depends on that bridge by default: `@gemini` runs the Antigravity CLI headlessly, and every round is still grounded on the notebook you bind with `notebookId`. The accessibility bridge remains for the Electron window and for rooms that opt into `"geminiSeat": "desktop"`.
+
 * **Rule of Thumb:**
-  - If you are working in a pure terminal environment with headless `agy` or `cursor-agent`, use the **[`AgentsUnite`](https://github.com/tedico/AgentsUnite)** CLI.
-  - If you want to bridge macOS consumer desktop apps into your development room, use **`AgentsUniteDesktop`**.
+  - If you want Claude Code and Antigravity in one room grounded on a NotebookLM notebook, use this repo's terminal runner (`AgentsUniteD`) with the default `agy` seat.
+  - If you want the plain three-seat CLI room without notebook grounding, use the **[`AgentsUnite`](https://github.com/tedico/AgentsUnite)** CLI.
+  - If you want to bridge the macOS consumer desktop apps into your development room, use the Electron window or `"geminiSeat": "desktop"`.
 
 ---
 
@@ -155,7 +172,7 @@ Every round automatically updates a clean **`transcript.md`** alongside the engi
 ```bash
 npm test
 ```
-Runs the full suite of 114 automated tests (including mock accessibility trees, CLI process trackers, preamble generation, and path management).
+Runs the full suite of 180 automated tests (mock accessibility trees, stub CLI binaries for the Claude and Antigravity seats, model resolution, preamble generation, and path management).
 
 ---
 
