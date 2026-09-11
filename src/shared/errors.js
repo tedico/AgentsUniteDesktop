@@ -40,6 +40,8 @@ export const ERRORS = {
     `Waiting for Accessibility. Open System Settings → Privacy & Security → Accessibility, turn on AgentsUnite Desktop, then quit and reopen this app.`,
   claudeNotOnPath: () =>
     `claude is not on PATH. Install Claude Code and make sure \`claude\` is on your PATH, then run again.`,
+  agyNotOnPath: () =>
+    `agy is not on PATH. Install the Antigravity CLI and make sure \`agy\` is on your PATH, then run again.`,
   notebooklmNotOnPath: () =>
     `notebooklm is not on PATH. Install notebooklm-py and make sure \`notebooklm\` is on your PATH, then run again.`,
   notebooklmLogin: () =>
